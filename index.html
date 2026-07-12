@@ -492,15 +492,15 @@ function labelSprite(text){
 }
 
 /* ---------- bookshelf builder ---------- */
-const interactables=[]; // {mesh, group, data, label, baseEmissive}
+const interactables=[]; // {mesh, data, label, labelY, focusUnit?, focusDistance?}
 const rayTargets=[];
-function registerArtifact(mesh, data, labelY){
+function registerArtifact(mesh, data, labelY, focusUnit, focusDistance){
   mesh.userData.artifact = interactables.length;
   mesh.material = mesh.material.clone();          // isolate from shared materials
   mesh.material.emissive = new THREE.Color(0xc8903c); // warm "selectable" glow
   mesh.material.emissiveIntensity = 0;
   const lbl=labelSprite(data.title);
-  interactables.push({mesh, data, label:lbl, labelY});
+  interactables.push({mesh, data, label:lbl, labelY, focusUnit, focusDistance});
   scene.add(lbl);
   rayTargets.push(mesh);
 }
@@ -539,7 +539,7 @@ function artifactBook(shelf, x, y, data){
   const band2=band.clone(); band2.position.y=h*0.2; g2.add(band2);
   g2.position.set(x,y,0.06);
   shelf.add(g2);
-  registerArtifact(body, data, 0.75);
+  registerArtifact(body, data, 0.75, shelf, 2.15);
   return w;
 }
 
@@ -600,7 +600,7 @@ const lifeData = LIBRARY.filter(a=>a.zone==="life");
       const spine=box(0.36,0.05,0.31,M.brass); spine.position.y=0.36; g2.add(spine);
       const strap=box(0.05,0.43,0.315,M.leatherD); strap.position.set(0.08,0.21,0); g2.add(strap);
       g2.position.set(x,ys[r],0.03); u.add(g2);
-      registerArtifact(body,d,0.7); idx++;
+      registerArtifact(body,d,0.7,u,2.15); idx++;
       // small keepsakes between
       if(k===0){ const jar=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.08,0.2,10),M.glassAmber);
         jar.position.set(x+0.72,ys[r]+0.1,0.03); u.add(jar); }
@@ -642,26 +642,26 @@ const T = Object.fromEntries(techData.map(a=>[a.title,a]));
     const scr=new THREE.Mesh(new THREE.PlaneGeometry(0.55,0.35),M.screen);
     scr.position.set(0,0.195,-0.232); scr.rotation.x=-0.32; l.add(scr);
     l.position.set(-0.7,1.0,-0.05); l.rotation.y=0.18; g.add(l);
-    registerArtifact(base, T["Lenovo — Windows 11"], 0.75); })();
+    registerArtifact(base, T["Lenovo — Windows 11"], 0.75,g,2.3); })();
 
   // HP laptop (closed, to the side)
   (()=>{ const base=box(0.6,0.045,0.42,new THREE.MeshStandardMaterial({color:0x2b2b26,roughness:.5}));
     base.position.set(1.05,1.02,-0.28); base.rotation.y=-0.25; g.add(base);
-    registerArtifact(base, T["HP — Windows 10"], 0.55); })();
+    registerArtifact(base, T["HP — Windows 10"], 0.55,g,2.3); })();
 
   // iPhone
   (()=>{ const p=box(0.1,0.012,0.2,M.black);
     p.position.set(0.25,1.01,0.28); p.rotation.y=0.4; g.add(p);
     const sc=new THREE.Mesh(new THREE.PlaneGeometry(0.085,0.18),M.screen);
     sc.rotation.x=-Math.PI/2; sc.position.set(0.25,1.018,0.28); sc.rotation.z=0.4; g.add(sc);
-    registerArtifact(p, T["iPhone 15 Pro"], 0.45); })();
+    registerArtifact(p, T["iPhone 15 Pro"], 0.45,g,2.3); })();
 
   // iPad on a small stand
   (()=>{ const st=box(0.2,0.16,0.14,M.woodMid); st.position.set(0.7,1.06,0.12); g.add(st);
     const pad=box(0.34,0.46,0.02,M.black); pad.position.set(0.7,1.25,0.12); pad.rotation.x=-0.22; g.add(pad);
     const sc=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.41),M.screen);
     sc.position.set(0.7,1.252,0.135); sc.rotation.x=-0.22; g.add(sc);
-    registerArtifact(pad, T["iPad Pro"], 0.6); })();
+    registerArtifact(pad, T["iPad Pro"], 0.6,g,2.3); })();
 
   // XREAL glasses
   (()=>{ const gl=new THREE.Group();
@@ -672,7 +672,7 @@ const T = Object.fromEntries(techData.map(a=>[a.title,a]));
     const a1=box(0.02,0.02,0.18,M.iron); a1.position.set(-0.11,0,-0.09); gl.add(a1);
     const a2=a1.clone(); a2.position.x=0.11; gl.add(a2);
     gl.position.set(-0.15,1.03,0.32); gl.rotation.y=-0.5; g.add(gl);
-    registerArtifact(l1, T["XREAL Glasses"], 0.42); })();
+    registerArtifact(l1, T["XREAL Glasses"], 0.42,g,2.3); })();
 
   // desk lamp (green banker's lamp)
   (()=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.12,0.04,12),M.brass);
@@ -712,7 +712,7 @@ const T = Object.fromEntries(techData.map(a=>[a.title,a]));
     body.position.y=0.2; g2.add(body);
     const band=box(0.228,0.045,0.31,M.brass); band.position.y=0.32; g2.add(band);
     g2.position.set(slots[i][0], ys[slots[i][1]], 0.04); u.add(g2);
-    registerArtifact(body,d,0.62);
+    registerArtifact(body,d,0.62,u,2.0);
   });
   let fx=0.45; while(fx<1.0){ fx+=fillerBook(u,fx,ys[0])+0.09; }
   fx=0.15; while(fx<1.0){ fx+=fillerBook(u,fx,ys[1])+0.09; }
@@ -931,12 +931,13 @@ const state={
   walkPhase:0,
   speed:3.1,
   cardOpen:false,
+  focusTransition:null,
   nearest:-1,
   started:false
 };
 addEventListener('keydown',e=>{
   state.keys[e.code]=true;
-  if((e.code==="KeyE"||e.code==="Enter") && state.nearest>=0 && !state.cardOpen) openCard(state.nearest);
+  if((e.code==="KeyE"||e.code==="Enter") && state.nearest>=0 && !state.cardOpen && !state.focusTransition) openCard(state.nearest);
   if(e.code==="Escape") closeCard();
 });
 addEventListener('keyup',e=>{ state.keys[e.code]=false; });
@@ -989,6 +990,7 @@ function joyUpdate(t){
 /* raycast pick */
 const raycaster=new THREE.Raycaster(), ndc=new THREE.Vector2();
 const _wp=new THREE.Vector3();
+const _focusPos=new THREE.Vector3(), _focusFront=new THREE.Vector3();
 function tryPick(x,y){
   ndc.set((x/innerWidth)*2-1, -(y/innerHeight)*2+1);
   raycaster.setFromCamera(ndc,camera);
@@ -1007,6 +1009,27 @@ let toastT=null;
 function toast(msg){ toastEl.textContent=msg; toastEl.style.opacity=1;
   clearTimeout(toastT); toastT=setTimeout(()=>toastEl.style.opacity=0,1600); }
 function openCard(idx){
+  const it=interactables[idx];
+  if(it.focusUnit){
+    it.focusUnit.updateWorldMatrix(true,false);
+    it.focusUnit.getWorldPosition(_focusPos);
+    _focusFront.set(0,0,1).transformDirection(it.focusUnit.matrixWorld);
+    const distance=it.focusDistance||2.15;
+    const cameraYaw=Math.atan2(_focusFront.x,_focusFront.z);
+    state.focusTransition={
+      elapsed:0, duration:0.55, idx,
+      fromX:avatar.position.x, fromZ:avatar.position.z,
+      toX:_focusPos.x+_focusFront.x*distance,
+      toZ:_focusPos.z+_focusFront.z*distance,
+      fromYaw:state.yaw, toYaw:cameraYaw,
+      fromPitch:state.pitch, toPitch:-0.12,
+      fromAvatarYaw:avatar.rotation.y, toAvatarYaw:cameraYaw+Math.PI
+    };
+    return;
+  }
+  showCard(idx);
+}
+function showCard(idx){
   const d=interactables[idx].data;
   $("cCat").textContent=ZONES[d.zone].name;
   $("cTitle").textContent=d.title;
@@ -1022,6 +1045,7 @@ cardWrap.addEventListener('click',e=>{ if(e.target===cardWrap) closeCard(); });
 promptEl.addEventListener('click',()=>{ if(state.nearest>=0) openCard(state.nearest); });
 examineBtn.addEventListener('click',()=>{ if(state.nearest>=0) openCard(state.nearest); });
 $("resetBtn").addEventListener('click',()=>{
+  state.focusTransition=null;
   avatar.position.set(-2.6,0,5.2); avatar.rotation.y=Math.PI;
   state.yaw=0; state.pitch=-0.16; closeCard();
   toast("Back at the door."); });
@@ -1033,9 +1057,31 @@ $("enterBtn").addEventListener('click',()=>{
 /* ---------- update loop ---------- */
 const clock=new THREE.Clock();
 const camTarget=new THREE.Vector3();
+const focusTest=new URLSearchParams(location.search).get("focusTest");
+if(focusTest){
+  state.started=true; welcome.style.display="none";
+  setTimeout(()=>openCard(interactables.findIndex(it=>it.data.title===focusTest)),250);
+}
 function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(clock.getDelta(),0.05), t=clock.elapsedTime;
+
+  if(state.focusTransition){
+    const f=state.focusTransition;
+    f.elapsed=Math.min(f.duration,f.elapsed+dt);
+    const u=f.elapsed/f.duration, eased=u*u*(3-2*u);
+    let dy=f.toYaw-f.fromYaw;
+    while(dy>Math.PI)dy-=Math.PI*2; while(dy<-Math.PI)dy+=Math.PI*2;
+    avatar.position.x=THREE.MathUtils.lerp(f.fromX,f.toX,eased);
+    avatar.position.z=THREE.MathUtils.lerp(f.fromZ,f.toZ,eased);
+    avatar.position.y=0;
+    state.yaw=f.fromYaw+dy*eased;
+    state.pitch=THREE.MathUtils.lerp(f.fromPitch,f.toPitch,eased);
+    let ady=f.toAvatarYaw-f.fromAvatarYaw;
+    while(ady>Math.PI)ady-=Math.PI*2; while(ady<-Math.PI)ady+=Math.PI*2;
+    avatar.rotation.y=f.fromAvatarYaw+ady*eased;
+    if(u>=1){ const idx=f.idx; state.focusTransition=null; showCard(idx); }
+  }
 
   /* input axes */
   let ix=0, iz=0;
@@ -1046,7 +1092,7 @@ function animate(){
   ix+=joyVec.x; iz+=joyVec.y;
   const il=Math.hypot(ix,iz); if(il>1){ ix/=il; iz/=il; }
 
-  if(!state.cardOpen && state.started && il>0.01){
+  if(!state.cardOpen && !state.focusTransition && state.started && il>0.01){
     // camera-relative: forward is -Z rotated by yaw
     const fx=-Math.sin(state.yaw), fz=-Math.cos(state.yaw);
     const rx=Math.cos(state.yaw),  rz=-Math.sin(state.yaw);
