@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Patrik's Memory Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9dcbd; --paper-edge:#d8c69c; --ink:#241a10; --ink-soft:#4a3a28;
+    --oxblood:#7a2b1e; --brass:#b48c4a; --moss:#33402f; --night:#0d0a07;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--night)}
+  body{font-family:'EB Garamond',Georgia,serif;color:var(--paper)}
+  #stage{position:fixed;inset:0;touch-action:none}
+  canvas{display:block}
+
+  /* vignette + subtle warm grade */
+  #grade{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 46%, rgba(5,3,1,.55) 100%);
+    mix-blend-mode:multiply}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:20}
+  .hud-title{position:absolute;top:14px;left:18px;letter-spacing:.14em;
+    font-family:'IM Fell English',serif;font-size:15px;color:#d8c69c;opacity:.85;
+    text-shadow:0 1px 6px rgba(0,0,0,.8)}
+  .hud-title small{display:block;font-family:'EB Garamond',serif;font-style:italic;
+    font-size:11.5px;letter-spacing:.06em;color:#9f8a5e;margin-top:2px}
+  .hud-btns{position:absolute;top:12px;right:12px;display:flex;gap:8px;pointer-events:auto}
+  .rbtn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(216,198,156,.4);
+    background:rgba(20,14,8,.72);color:#d8c69c;font-family:'IM Fell English',serif;
+    font-size:17px;cursor:pointer;backdrop-filter:blur(3px);line-height:1}
+  .rbtn:hover{background:rgba(60,44,22,.85)}
+  .rbtn:focus-visible{outline:2px solid #d8c69c;outline-offset:2px}
+
+  #prompt{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);
+    padding:8px 18px;border-radius:3px;background:rgba(24,17,9,.85);
+    border:1px solid rgba(180,140,74,.55);color:#e9dcbd;font-size:15px;
+    letter-spacing:.04em;display:none;pointer-events:auto;cursor:pointer;
+    box-shadow:0 4px 18px rgba(0,0,0,.5);text-align:center}
+  #prompt b{font-family:'IM Fell English',serif;color:#e4b96b;font-weight:normal}
+  #prompt .k{display:inline-block;border:1px solid rgba(216,198,156,.5);border-radius:3px;
+    padding:0 6px;margin:0 3px;font-size:12.5px;color:#d8c69c}
+
+  #toast{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);
+    padding:6px 14px;border-radius:3px;background:rgba(24,17,9,.9);
+    border:1px solid rgba(122,43,30,.7);color:#e0c9a0;font-size:14px;font-style:italic;
+    opacity:0;transition:opacity .35s;pointer-events:none}
+
+  /* ---------- joystick (touch) ---------- */
+  #joy{position:absolute;left:22px;bottom:26px;width:118px;height:118px;border-radius:50%;
+    border:1.5px solid rgba(216,198,156,.35);background:rgba(20,14,8,.35);
+    display:none;pointer-events:auto}
+  #joyKnob{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
+    background:rgba(180,140,74,.55);border:1px solid rgba(233,220,189,.5);
+    transform:translate(-50%,-50%)}
+  #examineBtn{position:absolute;right:24px;bottom:40px;width:84px;height:84px;border-radius:50%;
+    border:1.5px solid rgba(228,185,107,.7);background:rgba(50,32,14,.82);color:#e9dcbd;
+    font-family:'IM Fell English',serif;font-size:15px;display:none;pointer-events:auto;
+    box-shadow:0 0 22px rgba(228,185,107,.25)}
+  .touch #joy{display:block}
+
+  /* ---------- catalogue card ---------- */
+  #cardWrap{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(6,4,2,.55);backdrop-filter:blur(2px)}
+  #card{position:relative;width:min(430px,92vw);max-height:84vh;overflow-y:auto;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 27px, rgba(90,60,20,.08) 27px 28px),
+      linear-gradient(160deg,#efe3c3 0%,#e6d7b0 55%,#dcc99b 100%);
+    color:var(--ink);border-radius:2px;padding:26px 28px 22px;
+    box-shadow:0 24px 70px rgba(0,0,0,.75), inset 0 0 60px rgba(120,80,30,.18);
+    border:1px solid #c9b384}
+  #card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
+    background:linear-gradient(180deg,#7a2b1e,#5c2016);opacity:.85}
+  .card-eyebrow{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:#6d5230;margin-bottom:6px}
+  .card-title{font-family:'IM Fell English',serif;font-size:27px;line-height:1.12;
+    color:#241a10;margin-bottom:10px}
+  .card-rule{height:1px;background:linear-gradient(90deg,#8a6a34,rgba(138,106,52,0));margin:10px 0 12px}
+  .card-desc{font-size:16.5px;line-height:1.5;color:#33271a;margin-bottom:16px}
+  .card-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+  .card-label{flex:0 0 84px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:#6d5230;padding-top:3px}
+  .card-value{font-size:15.5px;color:#2c2114;line-height:1.4}
+  .stamp{display:inline-block;transform:rotate(-3deg);border:2px solid;border-radius:3px;
+    padding:1px 9px;font-family:'IM Fell English',serif;font-size:13.5px;letter-spacing:.12em;
+    text-transform:uppercase;opacity:.85}
+  .next-action{background:rgba(122,43,30,.07);border-left:3px solid #7a2b1e;
+    padding:9px 12px;font-size:15.5px;font-style:italic;color:#3a2317;line-height:1.4}
+  .next-action b{font-style:normal;font-family:'IM Fell English',serif;font-size:12px;
+    letter-spacing:.18em;color:#7a2b1e;display:block;margin-bottom:3px}
+  #cardClose{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;
+    border:1px solid #a58a58;background:rgba(233,220,189,.6);color:#4a3a28;font-size:15px;
+    cursor:pointer;font-family:Georgia,serif}
+  #cardClose:hover{background:#d8c69c}
+  #cardClose:focus-visible{outline:2px solid #7a2b1e}
+  .card-footer{margin-top:16px;font-size:11px;letter-spacing:.14em;color:#8a744c;
+    text-transform:uppercase;display:flex;justify-content:space-between}
+
+  /* ---------- welcome / help ---------- */
+  #welcome{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 40%, rgba(30,20,8,.88), rgba(5,3,1,.97));
+    transition:opacity .8s}
+  .w-inner{max-width:480px;width:92vw;text-align:center;padding:34px 30px;
+    border:1px solid rgba(180,140,74,.45);background:rgba(14,9,4,.6);border-radius:3px;
+    box-shadow:0 0 80px rgba(228,185,107,.08) inset}
+  .w-eyebrow{font-size:11px;letter-spacing:.34em;color:#9f8a5e;text-transform:uppercase;margin-bottom:14px}
+  .w-title{font-family:'IM Fell English',serif;font-size:34px;color:#e9dcbd;line-height:1.1;margin-bottom:10px}
+  .w-sub{font-style:italic;font-size:16px;color:#bda87c;margin-bottom:22px;line-height:1.45}
+  .w-ctl{font-size:14.5px;color:#c9b384;line-height:1.9;margin-bottom:24px}
+  .w-ctl .k{display:inline-block;border:1px solid rgba(216,198,156,.5);border-radius:3px;
+    padding:0 7px;margin:0 2px;font-size:12.5px;color:#e9dcbd}
+  #enterBtn{font-family:'IM Fell English',serif;font-size:17px;letter-spacing:.1em;
+    color:#1d1206;background:linear-gradient(180deg,#d8b56e,#a97f3c);border:1px solid #6d5230;
+    padding:11px 34px;border-radius:2px;cursor:pointer;box-shadow:0 4px 20px rgba(228,185,107,.25)}
+  #enterBtn:hover{filter:brightness(1.08)}
+  #enterBtn:focus-visible{outline:2px solid #e9dcbd;outline-offset:3px}
+  #loadNote{margin-top:14px;font-size:12px;color:#7d6a45;letter-spacing:.1em}
+
+  @media (max-width:640px){
+    .card-title{font-size:23px}
+    .hud-title{font-size:13px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="grade"></div>
+
+<div id="hud">
+  <div class="hud-title">PATRIK'S MEMORY LIBRARY<small>a private archive of projects &amp; lessons</small></div>
+  <div class="hud-btns">
+    <button class="rbtn" id="helpBtn" title="Help" aria-label="Help">?</button>
+    <button class="rbtn" id="resetBtn" title="Return to the door" aria-label="Reset position">&#8634;</button>
+  </div>
+  <div id="prompt"></div>
+  <div id="toast"></div>
+  <div id="joy"><div id="joyKnob"></div></div>
+  <button id="examineBtn">Examine</button>
+</div>
+
+<div id="cardWrap" role="dialog" aria-modal="true">
+  <div id="card">
+    <button id="cardClose" aria-label="Close">&#10005;</button>
+    <div class="card-eyebrow" id="cCat"></div>
+    <div class="card-title" id="cTitle"></div>
+    <div class="card-rule"></div>
+    <div class="card-desc" id="cDesc"></div>
+    <div class="card-row"><div class="card-label">Status</div><div class="card-value"><span class="stamp" id="cStatus"></span></div></div>
+    <div class="next-action"><b>NEXT ACTION</b><span id="cNext"></span></div>
+    <div class="card-footer"><span>MEMORY LIBRARY · CATALOGUE</span><span id="cRef"></span></div>
+  </div>
+</div>
+
+<div id="welcome">
+  <div class="w-inner">
+    <div class="w-eyebrow">The collection of</div>
+    <div class="w-title">Patrik's Memory Library</div>
+    <div class="w-sub">Every shelf holds something you built, learned or lived.<br>Walk in. Pick something up.</div>
+    <div class="w-ctl" id="ctlDesktop"><span class="k">W A S D</span> or <span class="k">&#8593;&#8595;&#8592;&#8594;</span> walk &nbsp;·&nbsp; drag mouse to look<br><span class="k">E</span> or click a glowing object to examine</div>
+    <div class="w-ctl" id="ctlTouch" style="display:none">Left stick to walk · drag right side to look<br>Tap <b>Examine</b> when an object glows</div>
+    <button id="enterBtn">Enter the library</button>
+    <div id="loadNote">CANDLES LIT · FIRE BURNING</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   PATRIK'S MEMORY LIBRARY — a navigable 3D memory room
+   Single file · Three.js r128 · no backend, no persistence
+   ============================================================ */
+
+/* ---------- The collection ---------- */
+const ZONES = {
+  ai:   { name:"AI Projects & Artifacts", ref:"SHELF I–II" },
+  life: { name:"Life, Training & Health", ref:"CABINET III" },
+  tech: { name:"Technology & Tools",      ref:"DESK IV" }
+};
+
+const LIBRARY = [
+  // --- AI projects (books, left shelves) ---
+  { zone:"ai", title:"Fable Sphere / SWIPE Cylinder", color:0x7a2b1e,
+    desc:"The flagship: a local-first personal workspace where you stand inside a curved cylinder of content. Physics-based SWIPE, developer QA panel, automated test rig.",
+    status:"CORE PROJECT · V1", sColor:"#1e5c34",
+    next:"Sketch how this room becomes the fourth view — Flat, Detail, SWIPE… Room." },
+  { zone:"ai", title:"Konstellation (Person V6)", color:0x2e4a6b,
+    desc:"Numerology and biorhythm explorer, delivered as a polished single-file app with a full test suite.",
+    status:"COMPLETE", sColor:"#2e4a6b",
+    next:"Put it in the hands of two real users and collect first reactions." },
+  { zone:"ai", title:"Tab — Shared Expenses", color:0x3f5a30,
+    desc:"A shared expense tracker for dinners and trips. No accounts, no backend — just open it and settle up.",
+    status:"COMPLETE", sColor:"#2e4a6b",
+    next:"Field-test it at the next shared dinner and note every friction point." },
+  { zone:"ai", title:"Breakout", color:0x8a6a34,
+    desc:"A classic rebuilt by hand — paddle, bricks and momentum. A study in game feel more than in nostalgia.",
+    status:"PROTOTYPE", sColor:"#8a5a17",
+    next:"Tune paddle physics and make touch controls feel as good as keys." },
+  { zone:"ai", title:"Creative Image Experiments", color:0x5c3a5e,
+    desc:"A running series of AI image studies — style, composition and prompt craft across models.",
+    status:"ONGOING", sColor:"#1e5c34",
+    next:"Curate the ten strongest images into a single gallery page." },
+  { zone:"ai", title:"Websites — mindtomind.se", color:0x365a58,
+    desc:"Your own corner of the web: domain, mail and the public face of what you build.",
+    status:"LIVE", sColor:"#1e5c34",
+    next:"Refresh the landing copy so it reflects this year's projects." },
+  { zone:"ai", title:"AI Workflow & Prompting Methods", color:0x6b3320,
+    desc:"The meta-book: three-AI workflow, credit-allocation strategy, prompting patterns and hard-won lessons from every build.",
+    status:"LIVING NOTEBOOK", sColor:"#1e5c34",
+    next:"Write down the light-vs-heavy model framework while it is fresh." },
+
+  // --- Life (journals, cabinet) ---
+  { zone:"life", title:"Training", color:0x4a5a3a,
+    desc:"Strength, movement, consistency. The log of what the body has actually done, not what was planned.",
+    status:"IN MOTION", sColor:"#1e5c34",
+    next:"Decide this week's three non-negotiable sessions and book them." },
+  { zone:"life", title:"Health", color:0x6b4a2e,
+    desc:"Sleep, energy, food, the long game. The quiet ledger everything else depends on.",
+    status:"WATCHING", sColor:"#8a5a17",
+    next:"Pick one metric to track daily for the next month — just one." },
+  { zone:"life", title:"Habits", color:0x3a4a5e,
+    desc:"The small repeated acts that compound. Building streaks that survive bad days.",
+    status:"UNDER REVIEW", sColor:"#8a5a17",
+    next:"Cut one habit that costs more than it gives." },
+  { zone:"life", title:"Recovery", color:0x5e3a3a,
+    desc:"Rest as a discipline: pauses, walks, evenings without screens. The counterweight to intense build phases.",
+    status:"PROTECTED", sColor:"#1e5c34",
+    next:"Schedule one fully unplugged half-day this week." },
+  { zone:"life", title:"Personal Development", color:0x54432b,
+    desc:"Reading, thinking, The Fourth Dystopia — the slow work of becoming sharper and clearer.",
+    status:"ONGOING", sColor:"#1e5c34",
+    next:"Give the book one focused writing hour before anything else tomorrow." },
+  { zone:"life", title:"Family Coordination", color:0x455a55,
+    desc:"Calendars, logistics, shared plans. Keeping the household running while the projects run too.",
+    status:"STEADY", sColor:"#1e5c34",
+    next:"Do a ten-minute calendar sync for the coming two weeks." },
+
+  // --- Tech & tools (objects, desk + manual shelf) ---
+  { zone:"tech", title:"iPhone 15 Pro", color:0x2a2a30,
+    desc:"The pocket studio: capture, test builds on real touch, and the first screen every prototype must survive.",
+    status:"DAILY DRIVER", sColor:"#1e5c34",
+    next:"Test this very room on it and note what feels wrong under the thumb." },
+  { zone:"tech", title:"iPad Pro", color:0x3a3a40,
+    desc:"The reading and sketching slab — reference at the desk, canvas on the sofa.",
+    status:"IN SERVICE", sColor:"#1e5c34",
+    next:"Try it as a dedicated second screen for QA panels." },
+  { zone:"tech", title:"Lenovo — Windows 11", color:0x22262b,
+    desc:"The main workbench: heavy builds, testing rigs, long sessions with the AI tools.",
+    status:"WORKBENCH", sColor:"#1e5c34",
+    next:"Clear the downloads folder and archive finished project files." },
+  { zone:"tech", title:"HP — Windows 10", color:0x2b2b26,
+    desc:"The veteran machine — backup workhorse and the honest low-end performance test.",
+    status:"RESERVE", sColor:"#8a5a17",
+    next:"Boot it monthly; use it as the minimum-spec test for new apps." },
+  { zone:"tech", title:"XREAL Glasses", color:0x1e2e30,
+    desc:"A window into spatial computing — the same instinct that produced Fable Sphere, worn on the face.",
+    status:"EXPLORING", sColor:"#8a5a17",
+    next:"Spend one session viewing Fable Sphere through them and take notes." },
+  { zone:"tech", title:"Codex", color:0x4a3020,
+    desc:"The coding agent for heavy lifting — refactors, test suites and the builds too large for chat.",
+    status:"ON CALL", sColor:"#1e5c34",
+    next:"Hand Codex this prototype's improvement list as its next brief." },
+  { zone:"tech", title:"Gemini", color:0x2e3a5e,
+    desc:"Google's model in the toolbox — AI Studio experiments and the MyNewsBrief stack.",
+    status:"IN ROTATION", sColor:"#1e5c34",
+    next:"Rebuild one small prompt chain in AI Studio to compare quality per credit." },
+  { zone:"tech", title:"GitHub & Vercel Workflows", color:0x30303a,
+    desc:"Version control and instant deploys — the pipeline that turns a local file into a shareable URL.",
+    status:"OPERATIONAL", sColor:"#1e5c34",
+    next:"Create a template repo for single-file apps with the test rig pre-wired." }
+];
+
+/* ---------- DOM ---------- */
+const $ = id => document.getElementById(id);
+const stage=$("stage"), promptEl=$("prompt"), toastEl=$("toast"),
+      cardWrap=$("cardWrap"), joy=$("joy"), joyKnob=$("joyKnob"),
+      examineBtn=$("examineBtn"), welcome=$("welcome");
+const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+if(IS_TOUCH){ document.body.classList.add('touch');
+  $("ctlDesktop").style.display="none"; $("ctlTouch").style.display="block"; }
+
+/* ---------- Three setup ---------- */
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH?1.6:2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0a07);
+scene.fog = new THREE.Fog(0x14100a, 12, 34);
+
+const camera = new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.1, 60);
+
+/* ---------- helpers ---------- */
+const colliders = []; // {x,z,r}
+function addCollider(x,z,r){ colliders.push({x,z,r}); }
+
+function canvasTex(w,h,draw){
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  draw(c.getContext('2d'),w,h);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t;
+}
+function box(w,h,d,mat){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); }
+function put(mesh,parent,x,y,z,ry){ mesh.position.set(x,y,z); if(ry)mesh.rotation.y=ry; parent.add(mesh); return mesh; }
+
+/* ---------- materials ---------- */
+const M = {
+  woodDark: new THREE.MeshStandardMaterial({color:0x2e1f12, roughness:.72, metalness:.05}),
+  woodMid:  new THREE.MeshStandardMaterial({color:0x4a3018, roughness:.7,  metalness:.04}),
+  woodDesk: new THREE.MeshStandardMaterial({color:0x3d2814, roughness:.6,  metalness:.06}),
+  wall:     new THREE.MeshStandardMaterial({color:0x2c3a2e, roughness:.95}),
+  ceiling:  new THREE.MeshStandardMaterial({color:0x241a10, roughness:.95}),
+  leather:  new THREE.MeshStandardMaterial({color:0x581f14, roughness:.55, metalness:.05}),
+  leatherD: new THREE.MeshStandardMaterial({color:0x431811, roughness:.6}),
+  brass:    new THREE.MeshStandardMaterial({color:0xb48c4a, roughness:.3, metalness:.85}),
+  iron:     new THREE.MeshStandardMaterial({color:0x22201d, roughness:.55, metalness:.6}),
+  stone:    new THREE.MeshStandardMaterial({color:0x5c554c, roughness:.9}),
+  stoneD:   new THREE.MeshStandardMaterial({color:0x47413a, roughness:.95}),
+  paper:    new THREE.MeshStandardMaterial({color:0xd8c69c, roughness:.9}),
+  glassAmber: new THREE.MeshStandardMaterial({color:0x8a4a10, roughness:.15, metalness:.1, transparent:true, opacity:.85}),
+  screen:   new THREE.MeshStandardMaterial({color:0x0e141a, roughness:.25, emissive:0x1a2a38, emissiveIntensity:.55}),
+  black:    new THREE.MeshStandardMaterial({color:0x141210, roughness:.8})
+};
+
+/* ---------- floor ---------- */
+const floorTex = canvasTex(512,512,(g)=>{
+  g.fillStyle="#3d2a17"; g.fillRect(0,0,512,512);
+  for(let row=0; row<8; row++){
+    const y=row*64, off=(row%2)*160;
+    for(let px=-1; px<4; px++){
+      const x=px*170+off;
+      const shade=0.85+Math.random()*0.35;
+      g.fillStyle=`rgb(${Math.floor(72*shade)},${Math.floor(48*shade)},${Math.floor(26*shade)})`;
+      g.fillRect(x+2,y+2,166,60);
+      g.strokeStyle="rgba(20,10,4,.6)"; g.strokeRect(x+2,y+2,166,60);
+      g.strokeStyle="rgba(30,18,8,.35)";
+      for(let i=0;i<5;i++){ g.beginPath();
+        const gy=y+8+Math.random()*48; g.moveTo(x+6,gy);
+        g.bezierCurveTo(x+60,gy+Math.random()*6-3,x+110,gy+Math.random()*6-3,x+164,gy);
+        g.stroke(); }
+    }
+  }
+});
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(5,3.5);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(26,18),
+  new THREE.MeshStandardMaterial({map:floorTex, roughness:.62, metalness:.05}));
+floor.rotation.x=-Math.PI/2; scene.add(floor);
+
+/* ---------- walls / ceiling / beams ---------- */
+const ROOM = {x:13, z:9, h:5.2};
+function wall(w,h,x,y,z,ry){ const m=box(w,h,0.3,M.wall); put(m,scene,x,y,z,ry); return m; }
+wall(26,ROOM.h, 0,ROOM.h/2,-ROOM.z, 0);          // back
+wall(26,ROOM.h, 0,ROOM.h/2, ROOM.z, 0);          // front
+wall(18,ROOM.h,-ROOM.x,ROOM.h/2,0, Math.PI/2);   // left
+wall(18,ROOM.h, ROOM.x,ROOM.h/2,0, Math.PI/2);   // right
+const ceil = box(26,0.3,18,M.ceiling); put(ceil,scene,0,ROOM.h,0);
+for(let i=-2;i<=2;i++){ const b=box(0.42,0.34,18,M.woodDark); put(b,scene,i*4.6,ROOM.h-0.18,0); }
+const beamX=box(26,0.3,0.42,M.woodDark); put(beamX,scene,0,ROOM.h-0.18,-4.5);
+put(beamX.clone(),scene,0,ROOM.h-0.18,4.5);
+
+/* wainscot */
+function wainscot(w,x,z,ry){
+  const g=new THREE.Group();
+  const base=box(w,1.35,0.12,M.woodDark); base.position.y=0.675; g.add(base);
+  const rail=box(w,0.09,0.16,M.woodMid); rail.position.y=1.38; g.add(rail);
+  const n=Math.floor(w/1.1);
+  for(let i=0;i<n;i++){
+    const p=box(0.8,0.9,0.03,M.woodMid);
+    p.position.set(-w/2+(i+0.5)*(w/n),0.72,0.075); g.add(p);
+  }
+  g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
+}
+wainscot(26,0,-ROOM.z+0.16,0); wainscot(26,0,ROOM.z-0.16,Math.PI);
+wainscot(18,-ROOM.x+0.16,0,Math.PI/2); wainscot(18,ROOM.x-0.16,0,-Math.PI/2);
+
+/* windows on the front wall — night outside */
+function windowPane(x){
+  const g=new THREE.Group();
+  const frame=box(1.7,2.7,0.18,M.woodDark); g.add(frame);
+  const glass=new THREE.Mesh(new THREE.PlaneGeometry(1.44,2.44),
+    new THREE.MeshStandardMaterial({color:0x0a1420, emissive:0x0e2438, emissiveIntensity:.7, roughness:.2}));
+  glass.position.z=-0.1; glass.rotation.y=Math.PI; g.add(glass);
+  const mv=box(0.06,2.44,0.06,M.woodDark); mv.position.z=-0.06; g.add(mv);
+  const mh=box(1.44,0.06,0.06,M.woodDark); mh.position.z=-0.06; g.add(mh);
+  const sill=box(1.9,0.1,0.3,M.woodMid); sill.position.y=-1.42; g.add(sill);
+  g.position.set(x,2.6,ROOM.z-0.18); scene.add(g);
+  const moon=new THREE.PointLight(0x40608a,.5,7); moon.position.set(x,2.6,ROOM.z-1.2); scene.add(moon);
+}
+windowPane(-7.5); windowPane(7.5);
+/* door on front wall (start point flavour) */
+(()=>{ const d=box(1.7,3.1,0.16,M.woodDark); put(d,scene,-2.6,1.55,ROOM.z-0.2);
+  const kn=new THREE.Mesh(new THREE.SphereGeometry(0.055,10,10),M.brass);
+  kn.position.set(-1.95,1.5,ROOM.z-0.32); scene.add(kn);
+  const fr=box(2.0,3.25,0.1,M.woodMid); put(fr,scene,-2.6,1.62,ROOM.z-0.14); })();
+
+/* ---------- fireplace ---------- */
+const fireGroup = new THREE.Group();
+(()=>{
+  const g=fireGroup;
+  put(box(3.6,3.0,0.7,M.stone), g, 0,1.5,0);
+  put(box(4.2,0.22,0.95,M.woodDark), g, 0,2.35,0.14);            // mantel
+  put(box(1.9,1.5,0.75,new THREE.MeshStandardMaterial({color:0x0a0705})), g, 0,0.85,0.06); // opening
+  put(box(2.4,0.14,1.5,M.stoneD), g, 0,0.07,0.75);               // hearth
+  // chimney breast
+  put(box(2.6,2.2,0.5,M.stoneD), g, 0,4.1,-0.05);
+  // logs
+  const logM=new THREE.MeshStandardMaterial({color:0x2b1a0c, roughness:.9});
+  for(let i=0;i<3;i++){ const l=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,1.1,8),logM);
+    l.rotation.z=Math.PI/2; l.rotation.y=(i-1)*0.5; l.position.set(0,0.24+i*0.12,0.28); g.add(l); }
+  g.position.set(0,0,-ROOM.z+0.35); scene.add(g);
+  addCollider(0,-ROOM.z+0.9,1.9);
+})();
+/* fire flames — additive planes */
+const fireTex = canvasTex(128,128,(g)=>{
+  const r=g.createRadialGradient(64,86,4,64,80,60);
+  r.addColorStop(0,"rgba(255,236,170,1)"); r.addColorStop(.35,"rgba(255,150,40,.9)");
+  r.addColorStop(.7,"rgba(200,60,10,.45)"); r.addColorStop(1,"rgba(120,20,0,0)");
+  g.fillStyle=r; g.beginPath();
+  g.moveTo(64,8); g.bezierCurveTo(100,50,104,90,64,120); g.bezierCurveTo(24,90,28,50,64,8);
+  g.fill();
+});
+const flames=[];
+for(let i=0;i<4;i++){
+  const s=new THREE.Mesh(new THREE.PlaneGeometry(0.8,1.0),
+    new THREE.MeshBasicMaterial({map:fireTex, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false}));
+  s.position.set((i-1.5)*0.16, 0.72, -ROOM.z+0.35+0.3+i*0.02);
+  scene.add(s); flames.push(s);
+}
+const fireLight=new THREE.PointLight(0xff8a2a, 1.6, 12, 2);
+fireLight.position.set(0,1.1,-ROOM.z+1.1); scene.add(fireLight);
+
+/* antlers above mantel */
+(()=>{ const g=new THREE.Group();
+  const plq=box(0.6,0.8,0.08,M.woodMid); g.add(plq);
+  const am=new THREE.MeshStandardMaterial({color:0xcbb68f, roughness:.7});
+  function branch(x,ry){ const b=new THREE.Group();
+    const m1=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.045,0.7,6),am);
+    m1.rotation.z=0.7*x; m1.position.set(0.22*x,0.28,0.1); b.add(m1);
+    for(let i=0;i<3;i++){ const t=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.028,0.3,6),am);
+      t.position.set((0.12+i*0.13)*x, 0.34+i*0.16, 0.1); t.rotation.z=(0.9+i*0.3)*x; b.add(t); }
+    return b; }
+  g.add(branch(1)); g.add(branch(-1));
+  g.position.set(0,3.6,-ROOM.z+0.62); scene.add(g); })();
+
+/* ---------- plaques & label sprites ---------- */
+function fitFont(g, text, max, base, family){
+  let s=base; g.font=`600 ${s}px ${family}`;
+  while(g.measureText(text).width>max && s>18){ s-=2; g.font=`600 ${s}px ${family}`; }
+  return s;
+}
+function plaque(text, w=2.6){
+  const t=canvasTex(640,150,(g)=>{
+    const lg=g.createLinearGradient(0,0,0,150);
+    lg.addColorStop(0,"#c8a25a"); lg.addColorStop(.5,"#9a7638"); lg.addColorStop(1,"#c09a52");
+    g.fillStyle=lg; g.fillRect(0,0,640,150);
+    g.strokeStyle="rgba(50,32,10,.8)"; g.lineWidth=6; g.strokeRect(10,10,620,130);
+    g.fillStyle="#2a1c0d"; g.textAlign="center"; g.textBaseline="middle";
+    fitFont(g,text,560,52,"Georgia, serif");
+    g.fillText(text,320,80);
+  });
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*150/640),
+    new THREE.MeshStandardMaterial({map:t, roughness:.4, metalness:.5}));
+  return m;
+}
+function labelSprite(text){
+  const t=canvasTex(512,140,(g)=>{
+    g.clearRect(0,0,512,140);
+    g.fillStyle="rgba(233,220,189,.95)";
+    const r=16; g.beginPath();
+    g.moveTo(40+r,20); g.lineTo(472-r,20); g.quadraticCurveTo(472,20,472,20+r);
+    g.lineTo(472,88-r); g.quadraticCurveTo(472,88,472-r,88);
+    g.lineTo(276,88); g.lineTo(256,112); g.lineTo(236,88);
+    g.lineTo(40+r,88); g.quadraticCurveTo(40,88,40,88-r);
+    g.lineTo(40,20+r); g.quadraticCurveTo(40,20,40+r,20); g.fill();
+    g.strokeStyle="rgba(90,60,20,.7)"; g.lineWidth=3; g.stroke();
+    g.fillStyle="#241a10"; g.textAlign="center"; g.textBaseline="middle";
+    fitFont(g,text,400,40,"Georgia, serif");
+    g.fillText(text,256,55);
+  });
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t, transparent:true, depthTest:false}));
+  s.scale.set(2.3,0.63,1); s.visible=false; s.renderOrder=10;
+  return s;
+}
+
+/* ---------- bookshelf builder ---------- */
+const interactables=[]; // {mesh, group, data, label, baseEmissive}
+const rayTargets=[];
+function registerArtifact(mesh, data, labelY){
+  mesh.userData.artifact = interactables.length;
+  mesh.material = mesh.material.clone();          // isolate from shared materials
+  mesh.material.emissive = new THREE.Color(0xc8903c); // warm "selectable" glow
+  mesh.material.emissiveIntensity = 0;
+  const lbl=labelSprite(data.title);
+  interactables.push({mesh, data, label:lbl, labelY});
+  scene.add(lbl);
+  rayTargets.push(mesh);
+}
+
+function shelfUnit(width, height, shelves){
+  const g=new THREE.Group(), d=0.42, t=0.06;
+  const back=box(width,height,0.05,M.woodDark); back.position.set(0,height/2,-d/2+0.03); g.add(back);
+  const sideL=box(t,height,d,M.woodMid); sideL.position.set(-width/2+t/2,height/2,0); g.add(sideL);
+  const sideR=sideL.clone(); sideR.position.x=width/2-t/2; g.add(sideR);
+  const top=box(width,t+0.04,d+0.08,M.woodMid); top.position.set(0,height+0.02,0); g.add(top);
+  const crown=box(width+0.14,0.1,d+0.16,M.woodDark); crown.position.set(0,height+0.09,0); g.add(crown);
+  const bottom=box(width,0.16,d+0.06,M.woodMid); bottom.position.set(0,0.08,0); g.add(bottom);
+  const ys=[];
+  for(let i=0;i<shelves;i++){
+    const y=0.16+((height-0.35)/shelves)*(i);
+    if(i>0){ const s=box(width-2*t,t,d-0.04,M.woodMid); s.position.set(0,y,0); g.add(s); }
+    ys.push(y+t/2);
+  }
+  g.userData.shelfYs=ys; g.userData.width=width; g.userData.depth=d;
+  return g;
+}
+function fillerBook(shelf, x, y){
+  const h=0.28+Math.random()*0.13, w=0.06+Math.random()*0.07;
+  const hues=[0x4a2a1a,0x2e3a2a,0x33302a,0x3a2a3a,0x52402a,0x263038,0x452020,0x3c341f];
+  const m=new THREE.MeshStandardMaterial({color:hues[Math.floor(Math.random()*hues.length)],roughness:.85});
+  const b=box(w,h,0.26,m);
+  b.position.set(x,y+h/2,0.02); b.rotation.z=(Math.random()-0.5)*0.03;
+  shelf.add(b); return w;
+}
+function artifactBook(shelf, x, y, data){
+  const g2=new THREE.Group();
+  const w=0.19,h=0.44;
+  const body=box(w,h,0.31,new THREE.MeshStandardMaterial({color:data.color, roughness:.55, emissive:data.color, emissiveIntensity:0.0}));
+  body.position.y=h/2; g2.add(body);
+  const band=box(w+0.008,0.05,0.315,M.brass); band.position.y=h*0.78; g2.add(band);
+  const band2=band.clone(); band2.position.y=h*0.2; g2.add(band2);
+  g2.position.set(x,y,0.06);
+  shelf.add(g2);
+  registerArtifact(body, data, 0.75);
+  return w;
+}
+
+/* ---- AI zone: two big shelf units on the left wall ---- */
+const aiData = LIBRARY.filter(a=>a.zone==="ai");
+(function buildAIZone(){
+  const positions=[{z:-3.4},{z:0.6}];
+  let ai=0;
+  positions.forEach((p,ui)=>{
+    const u=shelfUnit(3.6,3.7,4);
+    u.position.set(-ROOM.x+0.45,0,p.z); u.rotation.y=Math.PI/2; scene.add(u);
+    addCollider(-ROOM.x+0.6,p.z-1.2,0.9); addCollider(-ROOM.x+0.6,p.z+1.2,0.9); addCollider(-ROOM.x+0.6,p.z,0.9);
+    const ys=u.userData.shelfYs;
+    for(let row=0; row<4; row++){
+      let x=-1.55;
+      const slotForArtifact = 0.35 + Math.random()*0.6;
+      let placedArt=false;
+      while(x<1.5){
+        const remainingArtifacts = ai<aiData.length;
+        if(remainingArtifacts && !placedArt && x>-1.55+slotForArtifact && ((ui===0&&row<4)||(ui===1&&row<3))){
+          // place at most one artifact per row per unit while any remain
+          const w=artifactBook(u,x+0.1,ys[row],aiData[ai]); ai++; x+=w+0.16; placedArt=true;
+        } else {
+          x+=fillerBook(u,x+0.05,ys[row])+0.085;
+        }
+      }
+    }
+  });
+  const pl=plaque(ZONES.ai.name.toUpperCase(),3.2);
+  pl.position.set(-ROOM.x+0.34,4.15,-1.4); pl.rotation.y=Math.PI/2; scene.add(pl);
+})();
+
+/* extra filler shelf, back-left corner */
+(()=>{ const u=shelfUnit(2.6,3.7,4);
+  u.position.set(-8.6,0,-ROOM.z+0.5); scene.add(u);
+  addCollider(-8.6,-ROOM.z+0.7,1.2);
+  const ys=u.userData.shelfYs;
+  for(let r=0;r<4;r++){ let x=-1.05; while(x<1.0){ x+=fillerBook(u,x+0.05,ys[r])+0.09; } }
+})();
+
+/* ---- Life zone: cabinet + journal shelf, back-right ---- */
+const lifeData = LIBRARY.filter(a=>a.zone==="life");
+(function buildLifeZone(){
+  const u=shelfUnit(3.0,2.6,3);
+  u.position.set(7.6,0,-ROOM.z+0.5); scene.add(u);
+  addCollider(7.6,-ROOM.z+0.75,1.4); addCollider(6.4,-ROOM.z+0.75,0.8); addCollider(8.8,-ROOM.z+0.75,0.8);
+  const ys=u.userData.shelfYs;
+  // journals: two per shelf row
+  let idx=0;
+  for(let r=0;r<3;r++){
+    for(let k=0;k<2;k++){
+      if(idx>=lifeData.length) break;
+      const x=-0.75+k*1.5 - 0.15;
+      const g2=new THREE.Group();
+      const d=lifeData[idx];
+      const body=box(0.34,0.42,0.3,new THREE.MeshStandardMaterial({color:d.color,roughness:.6,emissive:d.color,emissiveIntensity:0}));
+      body.position.y=0.21; g2.add(body);
+      const spine=box(0.36,0.05,0.31,M.brass); spine.position.y=0.36; g2.add(spine);
+      const strap=box(0.05,0.43,0.315,M.leatherD); strap.position.set(0.08,0.21,0); g2.add(strap);
+      g2.position.set(x,ys[r],0.03); u.add(g2);
+      registerArtifact(body,d,0.7); idx++;
+      // small keepsakes between
+      if(k===0){ const jar=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.08,0.2,10),M.glassAmber);
+        jar.position.set(x+0.72,ys[r]+0.1,0.03); u.add(jar); }
+    }
+  }
+  const pl=plaque(ZONES.life.name.toUpperCase(),2.9);
+  pl.position.set(7.6,3.2,-ROOM.z+0.36); scene.add(pl);
+  // a wooden chest below/beside
+  const chest=new THREE.Group();
+  put(box(1.3,0.6,0.7,M.woodMid),chest,0,0.32,0);
+  put(box(1.34,0.14,0.74,M.woodDark),chest,0,0.66,0);
+  put(box(0.08,0.5,0.72,M.iron),chest,0,0.3,0);
+  chest.position.set(10.4,0,-ROOM.z+0.75); scene.add(chest);
+  addCollider(10.4,-ROOM.z+0.75,0.9);
+})();
+
+/* ---- Tech zone: writing desk + manual shelf, right wall ---- */
+const techData = LIBRARY.filter(a=>a.zone==="tech");
+const T = Object.fromEntries(techData.map(a=>[a.title,a]));
+(function buildTechZone(){
+  const g=new THREE.Group();
+  // desk
+  const top=box(3.0,0.1,1.2,M.woodDesk); top.position.y=0.95; g.add(top);
+  const skirt=box(2.9,0.18,1.1,M.woodDark); skirt.position.y=0.85; g.add(skirt);
+  for(const [lx,lz] of [[-1.35,-0.45],[1.35,-0.45],[-1.35,0.45],[1.35,0.45]]){
+    const leg=box(0.1,0.9,0.1,M.woodDark); leg.position.set(lx,0.45,lz); g.add(leg);
+  }
+  // drawers front
+  for(let i=0;i<2;i++){ const dr=box(0.7,0.16,0.04,M.woodMid);
+    dr.position.set(-0.75+i*1.5,0.82,0.58); g.add(dr);
+    const kb=new THREE.Mesh(new THREE.SphereGeometry(0.028,8,8),M.brass);
+    kb.position.set(-0.75+i*1.5,0.82,0.62); g.add(kb); }
+
+  // Lenovo laptop (open)
+  (()=>{ const l=new THREE.Group();
+    const base=box(0.62,0.03,0.42,M.black); l.add(base);
+    const kb=box(0.5,0.005,0.28,new THREE.MeshStandardMaterial({color:0x1c1c1e,roughness:.5})); kb.position.set(0,0.02,0.02); l.add(kb);
+    const lid=box(0.62,0.42,0.02,M.black); lid.position.set(0,0.19,-0.245); lid.rotation.x=-0.32; l.add(lid);
+    const scr=new THREE.Mesh(new THREE.PlaneGeometry(0.55,0.35),M.screen);
+    scr.position.set(0,0.195,-0.232); scr.rotation.x=-0.32; l.add(scr);
+    l.position.set(-0.7,1.0,-0.05); l.rotation.y=0.18; g.add(l);
+    registerArtifact(base, T["Lenovo — Windows 11"], 0.75); })();
+
+  // HP laptop (closed, to the side)
+  (()=>{ const base=box(0.6,0.045,0.42,new THREE.MeshStandardMaterial({color:0x2b2b26,roughness:.5}));
+    base.position.set(1.05,1.02,-0.28); base.rotation.y=-0.25; g.add(base);
+    registerArtifact(base, T["HP — Windows 10"], 0.55); })();
+
+  // iPhone
+  (()=>{ const p=box(0.1,0.012,0.2,M.black);
+    p.position.set(0.25,1.01,0.28); p.rotation.y=0.4; g.add(p);
+    const sc=new THREE.Mesh(new THREE.PlaneGeometry(0.085,0.18),M.screen);
+    sc.rotation.x=-Math.PI/2; sc.position.set(0.25,1.018,0.28); sc.rotation.z=0.4; g.add(sc);
+    registerArtifact(p, T["iPhone 15 Pro"], 0.45); })();
+
+  // iPad on a small stand
+  (()=>{ const st=box(0.2,0.16,0.14,M.woodMid); st.position.set(0.7,1.06,0.12); g.add(st);
+    const pad=box(0.34,0.46,0.02,M.black); pad.position.set(0.7,1.25,0.12); pad.rotation.x=-0.22; g.add(pad);
+    const sc=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.41),M.screen);
+    sc.position.set(0.7,1.252,0.135); sc.rotation.x=-0.22; g.add(sc);
+    registerArtifact(pad, T["iPad Pro"], 0.6); })();
+
+  // XREAL glasses
+  (()=>{ const gl=new THREE.Group();
+    const lensM=new THREE.MeshStandardMaterial({color:0x101c20,roughness:.15,metalness:.4});
+    const l1=box(0.11,0.06,0.02,lensM); l1.position.x=-0.062; gl.add(l1);
+    const l2=l1.clone(); l2.position.x=0.062; gl.add(l2);
+    const br=box(0.03,0.02,0.02,M.iron); gl.add(br);
+    const a1=box(0.02,0.02,0.18,M.iron); a1.position.set(-0.11,0,-0.09); gl.add(a1);
+    const a2=a1.clone(); a2.position.x=0.11; gl.add(a2);
+    gl.position.set(-0.15,1.03,0.32); gl.rotation.y=-0.5; g.add(gl);
+    registerArtifact(l1, T["XREAL Glasses"], 0.42); })();
+
+  // desk lamp (green banker's lamp)
+  (()=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.12,0.04,12),M.brass);
+    b.position.set(-1.25,1.02,-0.3); g.add(b);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.34,8),M.brass);
+    stem.position.set(-1.25,1.2,-0.3); g.add(stem);
+    const shade=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.16,0.13,12,1,true),
+      new THREE.MeshStandardMaterial({color:0x1e4a30,roughness:.35,metalness:.3,side:THREE.DoubleSide,emissive:0x0d2a18,emissiveIntensity:.5}));
+    shade.position.set(-1.25,1.4,-0.3); g.add(shade);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8),
+      new THREE.MeshBasicMaterial({color:0xffe9b0})); bulb.position.set(-1.25,1.36,-0.3); g.add(bulb); })();
+
+  g.position.set(ROOM.x-1.35,0,1.6); g.rotation.y=-Math.PI/2; scene.add(g);
+  addCollider(ROOM.x-1.35,1.6,1.5); addCollider(ROOM.x-1.35,0.4,1.0); addCollider(ROOM.x-1.35,2.8,1.0);
+  const dl=new THREE.PointLight(0xffd28a,.8,5); dl.position.set(ROOM.x-1.7,1.6,1.3); scene.add(dl);
+
+  // desk chair
+  const ch=new THREE.Group();
+  put(box(0.55,0.08,0.55,M.leather),ch,0,0.5,0);
+  put(box(0.55,0.6,0.08,M.leather),ch,0,0.85,-0.26);
+  for(const [lx,lz] of [[-0.22,-0.22],[0.22,-0.22],[-0.22,0.22],[0.22,0.22]]){
+    put(box(0.06,0.5,0.06,M.woodDark),ch,lx,0.25,lz);
+  }
+  ch.position.set(ROOM.x-2.6,0,1.6); ch.rotation.y=-Math.PI/2+0.3; scene.add(ch);
+  addCollider(ROOM.x-2.6,1.6,0.55);
+
+  // manuals shelf on right wall (Codex, Gemini, GitHub & Vercel)
+  const u=shelfUnit(2.2,1.5,2);
+  u.position.set(ROOM.x-0.45,1.2,4.6); u.rotation.y=-Math.PI/2; scene.add(u);
+  addCollider(ROOM.x-0.6,4.6,1.1);
+  const ys=u.userData.shelfYs;
+  const manuals=[T["Codex"],T["Gemini"],T["GitHub & Vercel Workflows"]];
+  const slots=[[-0.6,0],[0.15,0],[-0.25,1]];
+  manuals.forEach((d,i)=>{
+    const g2=new THREE.Group();
+    const body=box(0.22,0.4,0.3,new THREE.MeshStandardMaterial({color:d.color,roughness:.55,emissive:d.color,emissiveIntensity:0}));
+    body.position.y=0.2; g2.add(body);
+    const band=box(0.228,0.045,0.31,M.brass); band.position.y=0.32; g2.add(band);
+    g2.position.set(slots[i][0], ys[slots[i][1]], 0.04); u.add(g2);
+    registerArtifact(body,d,0.62);
+  });
+  let fx=0.45; while(fx<1.0){ fx+=fillerBook(u,fx,ys[0])+0.09; }
+  fx=0.15; while(fx<1.0){ fx+=fillerBook(u,fx,ys[1])+0.09; }
+
+  const pl=plaque(ZONES.tech.name.toUpperCase(),2.9);
+  pl.position.set(ROOM.x-0.36,3.4,2.6); pl.rotation.y=-Math.PI/2; scene.add(pl);
+})();
+
+/* ---------- rugs ---------- */
+const rugTex = canvasTex(512,768,(g)=>{
+  g.fillStyle="#5a1f18"; g.fillRect(0,0,512,768);
+  g.fillStyle="#c9a35c"; g.fillRect(14,14,484,740);
+  g.fillStyle="#4a1a14"; g.fillRect(26,26,460,716);
+  g.fillStyle="#c9a35c"; g.fillRect(48,48,416,672);
+  g.fillStyle="#5e2419"; g.fillRect(58,58,396,652);
+  g.strokeStyle="#c9a35c"; g.lineWidth=3;
+  for(let i=0;i<6;i++){ for(let j=0;j<9;j++){
+    const x=90+i*56, y=96+j*66;
+    g.beginPath(); g.moveTo(x,y-20); g.lineTo(x+20,y); g.lineTo(x,y+20); g.lineTo(x-20,y); g.closePath(); g.stroke();
+  }}
+  g.fillStyle="#c9a35c";
+  g.beginPath(); g.ellipse(256,384,86,120,0,0,Math.PI*2); g.fill();
+  g.fillStyle="#2e3a4a";
+  g.beginPath(); g.ellipse(256,384,64,94,0,0,Math.PI*2); g.fill();
+  g.fillStyle="#c9a35c";
+  g.beginPath(); g.ellipse(256,384,26,40,0,0,Math.PI*2); g.fill();
+});
+const rug=new THREE.Mesh(new THREE.PlaneGeometry(4.6,6.6),
+  new THREE.MeshStandardMaterial({map:rugTex,roughness:.95}));
+rug.rotation.x=-Math.PI/2; rug.rotation.z=Math.PI/2; rug.position.set(0,0.015,-2.6); scene.add(rug);
+
+/* ---------- reading nook: armchairs, side table, decanters ---------- */
+function armchair(){
+  const g=new THREE.Group();
+  put(box(0.9,0.32,0.85,M.leatherD),g,0,0.3,0);
+  put(box(0.9,0.16,0.8,M.leather),g,0,0.5,0.02);
+  put(box(0.9,0.85,0.22,M.leather),g,0,0.85,-0.42);
+  put(box(0.2,0.5,0.85,M.leatherD),g,-0.45,0.62,0);
+  put(box(0.2,0.5,0.85,M.leatherD),g,0.45,0.62,0);
+  for(const [lx,lz] of [[-0.38,-0.32],[0.38,-0.32],[-0.38,0.34],[0.38,0.34]]){
+    put(new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.16,8),M.woodDark),g,lx,0.08,lz);
+  }
+  return g;
+}
+const ch1=armchair(); ch1.position.set(-1.9,0,-4.6); ch1.rotation.y=0.5; scene.add(ch1);
+const ch2=armchair(); ch2.position.set(1.9,0,-4.6); ch2.rotation.y=-0.5; scene.add(ch2);
+addCollider(-1.9,-4.6,0.85); addCollider(1.9,-4.6,0.85);
+/* side table with decanter + glasses */
+(()=>{ const g=new THREE.Group();
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.05,16),M.woodDesk),g,0,0.62,0);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.6,8),M.woodDark),g,0,0.32,0);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.26,0.05,12),M.woodDark),g,0,0.03,0);
+  const dec=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.11,0.24,10),M.glassAmber);
+  dec.position.set(-0.08,0.77,0); g.add(dec);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.035,0.12,8),M.glassAmber);
+  neck.position.set(-0.08,0.94,0); g.add(neck);
+  const stop=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8),M.glassAmber);
+  stop.position.set(-0.08,1.02,0); g.add(stop);
+  const gl1=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.038,0.09,8),M.glassAmber);
+  gl1.position.set(0.12,0.7,0.08); g.add(gl1);
+  const gl2=gl1.clone(); gl2.position.set(0.16,0.7,-0.08); g.add(gl2);
+  g.position.set(0,0,-5.2); scene.add(g); addCollider(0,-5.2,0.5); })();
+
+/* globe */
+(()=>{ const g=new THREE.Group();
+  const globeTex=canvasTex(256,128,(gg)=>{
+    gg.fillStyle="#284a5e"; gg.fillRect(0,0,256,128);
+    gg.fillStyle="#7c6a3e";
+    for(let i=0;i<9;i++){ gg.beginPath();
+      gg.ellipse(30+Math.random()*200, 20+Math.random()*88, 12+Math.random()*24, 8+Math.random()*14, Math.random()*3, 0, Math.PI*2); gg.fill(); }
+  });
+  const sph=new THREE.Mesh(new THREE.SphereGeometry(0.42,20,16),
+    new THREE.MeshStandardMaterial({map:globeTex,roughness:.5}));
+  sph.position.y=1.05; sph.rotation.z=0.35; g.add(sph);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.47,0.02,8,32),M.brass);
+  ring.rotation.x=Math.PI/2-0.35; ring.position.y=1.05; g.add(ring);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.04,0.5,8),M.woodDark),g,0,0.4,0);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.06,12),M.woodDark),g,0,0.06,0);
+  g.userData.globe=sph;
+  g.position.set(-7.2,0,-5.6); scene.add(g); addCollider(-7.2,-5.6,0.6);
+  window.__globe=sph; })();
+
+/* grandfather clock, front-left corner */
+let pendulum=null;
+(()=>{ const g=new THREE.Group();
+  put(box(0.8,3.0,0.5,M.woodDark),g,0,1.5,0);
+  put(box(0.9,0.2,0.6,M.woodMid),g,0,3.05,0);
+  put(box(0.9,0.16,0.6,M.woodMid),g,0,0.1,0);
+  const face=new THREE.Mesh(new THREE.CircleGeometry(0.26,24),M.paper);
+  face.position.set(0,2.45,0.26); g.add(face);
+  const h1=box(0.02,0.16,0.005,M.black); h1.position.set(0,2.48,0.27); h1.rotation.z=0.9; g.add(h1);
+  const h2=box(0.015,0.2,0.005,M.black); h2.position.set(0,2.47,0.27); h2.rotation.z=-2.1; g.add(h2);
+  const win=box(0.5,1.4,0.02,new THREE.MeshStandardMaterial({color:0x14100a,roughness:.3})); win.position.set(0,1.3,0.25); g.add(win);
+  pendulum=new THREE.Group();
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,1.0,6),M.brass); rod.position.y=-0.5; pendulum.add(rod);
+  const bob=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.02,14),M.brass);
+  bob.rotation.x=Math.PI/2; bob.position.y=-1.0; pendulum.add(bob);
+  pendulum.position.set(0,2.0,0.16); g.add(pendulum);
+  g.position.set(-11.9,0,6.9); g.rotation.y=Math.PI/4; scene.add(g);
+  addCollider(-11.9,6.9,0.85); })();
+
+/* portraits on right wall + back wall */
+function portrait(w,h,x,y,z,ry,hue){
+  const g=new THREE.Group();
+  put(box(w+0.16,h+0.16,0.06,M.woodMid),g,0,0,0);
+  put(box(w+0.06,h+0.06,0.07,M.brass),g,0,0,0.005);
+  const art=canvasTex(128,160,(gg)=>{
+    const lg=gg.createLinearGradient(0,0,0,160);
+    lg.addColorStop(0,hue); lg.addColorStop(1,"#0d0a07");
+    gg.fillStyle=lg; gg.fillRect(0,0,128,160);
+    gg.fillStyle="rgba(220,190,140,.25)";
+    gg.beginPath(); gg.ellipse(64,66,26,32,0,0,Math.PI*2); gg.fill();
+    gg.beginPath(); gg.ellipse(64,130,42,36,0,0,Math.PI*2); gg.fill();
+  });
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+    new THREE.MeshStandardMaterial({map:art,roughness:.8}));
+  p.position.z=0.045; g.add(p);
+  g.position.set(x,y,z); g.rotation.y=ry; scene.add(g);
+}
+portrait(0.9,1.2, ROOM.x-0.2,2.7,-3.5, -Math.PI/2, "#3a2a4a");
+portrait(0.8,1.05, -4.6,2.9,-ROOM.z+0.22, 0, "#2a3a30");
+portrait(0.8,1.05, 4.6,2.9,-ROOM.z+0.22, 0, "#4a3020");
+
+/* stack of books on floor near armchair */
+(()=>{ let y=0; const hues=[0x4a2a1a,0x2e3a2a,0x452020];
+  hues.forEach((h,i)=>{ const b=box(0.34-i*0.04,0.07,0.26,new THREE.MeshStandardMaterial({color:h,roughness:.8}));
+    b.position.set(-2.7,y+0.035,-3.7); b.rotation.y=i*0.3; y+=0.07; scene.add(b); }); })();
+
+/* ---------- lighting ---------- */
+scene.add(new THREE.AmbientLight(0x3a2c1c, 0.55));
+const hemi=new THREE.HemisphereLight(0x4a3c28, 0x140e07, 0.5); scene.add(hemi);
+/* chandelier center */
+(()=>{ const g=new THREE.Group();
+  const chain=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.015,1.0,6),M.iron); chain.position.y=0.5; g.add(chain);
+  const ringy=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.03,8,20),M.iron); ringy.rotation.x=Math.PI/2; g.add(ringy);
+  for(let i=0;i<5;i++){ const a=i/5*Math.PI*2;
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.025,0.12,6),M.paper);
+    c.position.set(Math.cos(a)*0.4,0.07,Math.sin(a)*0.4); g.add(c);
+    const f=new THREE.Mesh(new THREE.SphereGeometry(0.022,6,6),new THREE.MeshBasicMaterial({color:0xffdf9a}));
+    f.position.set(Math.cos(a)*0.4,0.16,Math.sin(a)*0.4); g.add(f); }
+  g.position.set(0,ROOM.h-1.0,-1.5); scene.add(g); })();
+const chLight=new THREE.PointLight(0xffcf8a, .9, 14, 2); chLight.position.set(0,3.9,-1.5); scene.add(chLight);
+/* floor lamp by the nook */
+(()=>{ const g=new THREE.Group();
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,1.5,8),M.brass),g,0,0.75,0);
+  put(new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.22,0.05,12),M.iron),g,0,0.03,0);
+  const shade=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.24,0.28,12,1,true),
+    new THREE.MeshStandardMaterial({color:0x8a5a2a,roughness:.6,side:THREE.DoubleSide,emissive:0x6a3c14,emissiveIntensity:.7}));
+  shade.position.y=1.55; g.add(shade);
+  g.position.set(3.2,0,-5.6); scene.add(g); addCollider(3.2,-5.6,0.4);
+  const l=new THREE.PointLight(0xffc478,.85,7); l.position.set(3.2,1.6,-5.6); scene.add(l); })();
+/* shelf accent light left */
+const shelfL=new THREE.PointLight(0xffbe78,.55,9); shelfL.position.set(-9.5,2.6,-1.4); scene.add(shelfL);
+/* life zone accent */
+const lifeL=new THREE.PointLight(0xffbe78,.5,7); lifeL.position.set(7.6,2.6,-6.5); scene.add(lifeL);
+
+/* dust motes */
+const dustGeo=new THREE.BufferGeometry();
+const DUST=120, dp=new Float32Array(DUST*3);
+for(let i=0;i<DUST;i++){ dp[i*3]=(Math.random()-0.5)*22; dp[i*3+1]=Math.random()*4+0.4; dp[i*3+2]=(Math.random()-0.5)*15; }
+dustGeo.setAttribute('position',new THREE.BufferAttribute(dp,3));
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xd8b878,size:0.025,transparent:true,opacity:.4}));
+scene.add(dust);
+
+/* fake blob shadows */
+const blobTex=canvasTex(128,128,(g)=>{ const r=g.createRadialGradient(64,64,4,64,64,60);
+  r.addColorStop(0,"rgba(0,0,0,.5)"); r.addColorStop(1,"rgba(0,0,0,0)");
+  g.fillStyle=r; g.fillRect(0,0,128,128); });
+function blob(x,z,s){ const m=new THREE.Mesh(new THREE.PlaneGeometry(s,s),
+  new THREE.MeshBasicMaterial({map:blobTex,transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.position.set(x,0.012,z); scene.add(m); return m; }
+blob(-1.9,-4.6,2.2); blob(1.9,-4.6,2.2); blob(0,-5.2,1.2); blob(-7.2,-5.6,1.4);
+blob(ROOM.x-1.35,1.6,3.4); blob(-11.4,6.5,1.8);
+const avatarBlob=blob(0,6,1.0);
+
+/* ---------- avatar ---------- */
+const avatar=new THREE.Group();
+const A = {
+  tweed:new THREE.MeshStandardMaterial({color:0x6b5a42,roughness:.8}),
+  trous:new THREE.MeshStandardMaterial({color:0x36302a,roughness:.85}),
+  skin:new THREE.MeshStandardMaterial({color:0xd9b48f,roughness:.7}),
+  hair:new THREE.MeshStandardMaterial({color:0x3a2c1e,roughness:.85}),
+  shoe:new THREE.MeshStandardMaterial({color:0x241a10,roughness:.5})
+};
+let legL, legR, armL, armR;
+(()=>{
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.21,0.55,10),A.tweed);
+  torso.position.y=1.05; avatar.add(torso);
+  const collar=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.17,0.1,10),A.tweed);
+  collar.position.y=1.36; avatar.add(collar);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.145,12,12),A.skin);
+  head.position.y=1.56; avatar.add(head);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.15,12,8,0,Math.PI*2,0,Math.PI/2.2),A.hair);
+  hair.position.y=1.585; avatar.add(hair);
+  function limb(mat,len,r){ const gp=new THREE.Group();
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r*0.85,len,8),mat);
+    m.position.y=-len/2; gp.add(m); return gp; }
+  legL=limb(A.trous,0.62,0.075); legL.position.set(-0.09,0.72,0); avatar.add(legL);
+  legR=limb(A.trous,0.62,0.075); legR.position.set(0.09,0.72,0); avatar.add(legR);
+  const shoeL=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.06,0.2),A.shoe);
+  shoeL.position.set(0,-0.6,0.04); legL.add(shoeL);
+  const shoeR=shoeL.clone(); legR.add(shoeR);
+  armL=limb(A.tweed,0.5,0.055); armL.position.set(-0.24,1.28,0); avatar.add(armL);
+  armR=limb(A.tweed,0.5,0.055); armR.position.set(0.24,1.28,0); avatar.add(armR);
+})();
+avatar.position.set(-2.6,0,5.2);
+avatar.rotation.y=Math.PI; // facing into the room
+scene.add(avatar);
+
+/* ---------- state / input ---------- */
+const state={
+  yaw: 0,                 // camera behind avatar, looking toward -z (into the room)
+  pitch: -0.16,
+  moveX:0, moveZ:0,       // input axes
+  keys:{},
+  walkPhase:0,
+  speed:3.1,
+  cardOpen:false,
+  nearest:-1,
+  started:false
+};
+addEventListener('keydown',e=>{
+  state.keys[e.code]=true;
+  if((e.code==="KeyE"||e.code==="Enter") && state.nearest>=0 && !state.cardOpen) openCard(state.nearest);
+  if(e.code==="Escape") closeCard();
+});
+addEventListener('keyup',e=>{ state.keys[e.code]=false; });
+
+/* pointer look + click */
+let dragging=false,lastX=0,lastY=0,downX=0,downY=0,moved=0,lookId=null;
+function pDown(x,y,id){ dragging=true; lastX=downX=x; lastY=downY=y; moved=0; lookId=id; }
+function pMove(x,y){ if(!dragging) return;
+  const dx=x-lastX, dy=y-lastY; lastX=x; lastY=y; moved+=Math.abs(dx)+Math.abs(dy);
+  state.yaw -= dx*0.0042; state.pitch = Math.max(-0.62,Math.min(0.34,state.pitch - dy*0.003)); }
+function pUp(x,y){ dragging=false; lookId=null;
+  if(moved<7 && state.started && !state.cardOpen) tryPick(x,y); }
+
+renderer.domElement.addEventListener('mousedown',e=>pDown(e.clientX,e.clientY,'m'));
+addEventListener('mousemove',e=>{ if(lookId==='m') pMove(e.clientX,e.clientY); });
+addEventListener('mouseup',e=>{ if(lookId==='m') pUp(e.clientX,e.clientY); });
+
+/* touch: joystick left, look right */
+let joyId=null, joyVec={x:0,y:0};
+const joyRect=()=>joy.getBoundingClientRect();
+joy.addEventListener('touchstart',e=>{ e.preventDefault();
+  const t=e.changedTouches[0]; joyId=t.identifier; joyUpdate(t); },{passive:false});
+addEventListener('touchmove',e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===joyId) joyUpdate(t);
+    else if(lookId===t.identifier) pMove(t.clientX,t.clientY);
+  }
+  if(joyId!==null||lookId!==null) e.preventDefault();
+},{passive:false});
+addEventListener('touchend',e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===joyId){ joyId=null; joyVec={x:0,y:0};
+      joyKnob.style.transform="translate(-50%,-50%)"; }
+    else if(lookId===t.identifier) pUp(t.clientX,t.clientY);
+  }
+});
+renderer.domElement.addEventListener('touchstart',e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier!==joyId && lookId===null){ pDown(t.clientX,t.clientY,t.identifier); }
+  }
+},{passive:true});
+function joyUpdate(t){
+  const r=joyRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+  let dx=(t.clientX-cx)/(r.width/2), dy=(t.clientY-cy)/(r.height/2);
+  const len=Math.hypot(dx,dy); if(len>1){ dx/=len; dy/=len; }
+  joyVec={x:dx,y:dy};
+  joyKnob.style.transform=`translate(calc(-50% + ${dx*33}px), calc(-50% + ${dy*33}px))`;
+}
+
+/* raycast pick */
+const raycaster=new THREE.Raycaster(), ndc=new THREE.Vector2();
+const _wp=new THREE.Vector3();
+function tryPick(x,y){
+  ndc.set((x/innerWidth)*2-1, -(y/innerHeight)*2+1);
+  raycaster.setFromCamera(ndc,camera);
+  const hits=raycaster.intersectObjects(rayTargets,false);
+  if(hits.length){
+    const idx=hits[0].object.userData.artifact;
+    hits[0].object.getWorldPosition(_wp);
+    const d=Math.hypot(_wp.x-avatar.position.x,_wp.z-avatar.position.z);
+    if(d<3.6) openCard(idx);
+    else toast("Walk a little closer…");
+  }
+}
+
+/* ---------- UI ---------- */
+let toastT=null;
+function toast(msg){ toastEl.textContent=msg; toastEl.style.opacity=1;
+  clearTimeout(toastT); toastT=setTimeout(()=>toastEl.style.opacity=0,1600); }
+function openCard(idx){
+  const d=interactables[idx].data;
+  $("cCat").textContent=ZONES[d.zone].name;
+  $("cTitle").textContent=d.title;
+  $("cDesc").textContent=d.desc;
+  const st=$("cStatus"); st.textContent=d.status; st.style.color=d.sColor; st.style.borderColor=d.sColor;
+  $("cNext").textContent=d.next;
+  $("cRef").textContent=ZONES[d.zone].ref+" · No. "+String(idx+1).padStart(2,"0");
+  cardWrap.style.display="flex"; state.cardOpen=true;
+}
+function closeCard(){ cardWrap.style.display="none"; state.cardOpen=false; }
+$("cardClose").addEventListener('click',closeCard);
+cardWrap.addEventListener('click',e=>{ if(e.target===cardWrap) closeCard(); });
+promptEl.addEventListener('click',()=>{ if(state.nearest>=0) openCard(state.nearest); });
+examineBtn.addEventListener('click',()=>{ if(state.nearest>=0) openCard(state.nearest); });
+$("resetBtn").addEventListener('click',()=>{
+  avatar.position.set(-2.6,0,5.2); avatar.rotation.y=Math.PI;
+  state.yaw=0; state.pitch=-0.16; closeCard();
+  toast("Back at the door."); });
+$("helpBtn").addEventListener('click',()=>{ welcome.style.display="flex"; welcome.style.opacity=1; });
+$("enterBtn").addEventListener('click',()=>{
+  welcome.style.opacity=0; state.started=true;
+  setTimeout(()=>welcome.style.display="none",800); });
+
+/* ---------- update loop ---------- */
+const clock=new THREE.Clock();
+const camTarget=new THREE.Vector3();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05), t=clock.elapsedTime;
+
+  /* input axes */
+  let ix=0, iz=0;
+  if(state.keys.KeyW||state.keys.ArrowUp) iz-=1;
+  if(state.keys.KeyS||state.keys.ArrowDown) iz+=1;
+  if(state.keys.KeyA||state.keys.ArrowLeft) ix-=1;
+  if(state.keys.KeyD||state.keys.ArrowRight) ix+=1;
+  ix+=joyVec.x; iz+=joyVec.y;
+  const il=Math.hypot(ix,iz); if(il>1){ ix/=il; iz/=il; }
+
+  if(!state.cardOpen && state.started && il>0.01){
+    // camera-relative: forward is -Z rotated by yaw
+    const fx=-Math.sin(state.yaw), fz=-Math.cos(state.yaw);
+    const rx=Math.cos(state.yaw),  rz=-Math.sin(state.yaw);
+    let mx=(fx*(-iz)+rx*ix), mz=(fz*(-iz)+rz*ix);
+    const ml=Math.hypot(mx,mz)||1; mx/=ml; mz/=ml;
+    const sp=state.speed*Math.min(il,1);
+    let nx=avatar.position.x+mx*sp*dt, nz=avatar.position.z+mz*sp*dt;
+    // room bounds
+    nx=Math.max(-ROOM.x+0.6,Math.min(ROOM.x-0.6,nx));
+    nz=Math.max(-ROOM.z+0.6,Math.min(ROOM.z-0.6,nz));
+    // colliders
+    for(const c of colliders){
+      const dx=nx-c.x, dz=nz-c.z, d=Math.hypot(dx,dz), min=c.r+0.32;
+      if(d<min && d>0.0001){ nx=c.x+dx/d*min; nz=c.z+dz/d*min; }
+    }
+    avatar.position.x=nx; avatar.position.z=nz;
+    // face movement direction
+    const targetRot=Math.atan2(mx,mz);
+    let dr=targetRot-avatar.rotation.y;
+    while(dr>Math.PI)dr-=Math.PI*2; while(dr<-Math.PI)dr+=Math.PI*2;
+    avatar.rotation.y+=dr*Math.min(1,dt*10);
+    // walk anim
+    state.walkPhase+=dt*7.5;
+    const sw=Math.sin(state.walkPhase)*0.55;
+    legL.rotation.x=sw; legR.rotation.x=-sw;
+    armL.rotation.x=-sw*0.7; armR.rotation.x=sw*0.7;
+    avatar.position.y=Math.abs(Math.sin(state.walkPhase))*0.035;
+  } else {
+    legL.rotation.x*=0.85; legR.rotation.x*=0.85;
+    armL.rotation.x*=0.85; armR.rotation.x*=0.85;
+    avatar.position.y*=0.85;
+  }
+  avatarBlob.position.set(avatar.position.x,0.013,avatar.position.z);
+
+  /* camera follow */
+  const dist=5.0, camH=1.9 - state.pitch*2.2;
+  let cx=avatar.position.x + Math.sin(state.yaw)*dist*Math.cos(state.pitch);
+  let cz=avatar.position.z + Math.cos(state.yaw)*dist*Math.cos(state.pitch);
+  let cy=avatar.position.y + camH - Math.sin(state.pitch)*dist*0.4;
+  cx=Math.max(-ROOM.x+0.35,Math.min(ROOM.x-0.35,cx));
+  cz=Math.max(-ROOM.z+0.35,Math.min(ROOM.z-0.35,cz));
+  cy=Math.max(0.5,Math.min(ROOM.h-0.3,cy));
+  camera.position.lerp(new THREE.Vector3(cx,cy,cz), 1-Math.pow(0.0001,dt));
+  camTarget.set(avatar.position.x, avatar.position.y+1.35, avatar.position.z);
+  camera.lookAt(camTarget);
+
+  /* nearest artifact */
+  let best=-1,bd=2.6;
+  for(let i=0;i<interactables.length;i++){
+    const it=interactables[i];
+    it.mesh.getWorldPosition(_wp);
+    const d=Math.hypot(_wp.x-avatar.position.x,_wp.z-avatar.position.z);
+    if(d<bd){ bd=d; best=i; }
+  }
+  if(best!==state.nearest){
+    if(state.nearest>=0){ const p=interactables[state.nearest];
+      p.mesh.material.emissiveIntensity=0; p.label.visible=false; }
+    state.nearest=best;
+  }
+  if(best>=0){
+    const it=interactables[best];
+    it.mesh.material.emissiveIntensity=0.35+Math.sin(t*4)*0.15;
+    it.mesh.getWorldPosition(_wp);
+    it.label.position.set(_wp.x,_wp.y+it.labelY,_wp.z);
+    it.label.visible=true;
+    if(!state.cardOpen){
+      promptEl.innerHTML= IS_TOUCH
+        ? `<b>${it.data.title}</b>`
+        : `<b>${it.data.title}</b> &nbsp;<span class="k">E</span> examine`;
+      promptEl.style.display="block";
+      if(IS_TOUCH) examineBtn.style.display="block";
+    }
+  } else {
+    promptEl.style.display="none"; examineBtn.style.display="none";
+  }
+  if(state.cardOpen){ promptEl.style.display="none"; examineBtn.style.display="none"; }
+
+  /* fire flicker */
+  const f=0.85+Math.sin(t*11)*0.12+Math.sin(t*23+1.7)*0.1+Math.random()*0.08;
+  fireLight.intensity=1.5*f;
+  flames.forEach((fl,i)=>{
+    fl.scale.set(0.85+Math.sin(t*9+i*2.1)*0.18, 0.9+Math.sin(t*13+i*1.3)*0.22, 1);
+    fl.lookAt(camera.position.x,fl.position.y,camera.position.z);
+    fl.rotation.z=Math.sin(t*7+i)*0.08;
+  });
+  /* pendulum + globe + dust */
+  if(pendulum) pendulum.rotation.z=Math.sin(t*2.2)*0.18;
+  if(window.__globe) window.__globe.rotation.y+=dt*0.15;
+  dust.rotation.y+=dt*0.006;
+  const dpos=dust.geometry.attributes.position;
+  for(let i=0;i<DUST;i+=7){ dpos.array[i*3+1]+=Math.sin(t*0.5+i)*0.0004; }
+  dpos.needsUpdate=true;
+
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
