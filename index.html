@@ -155,12 +155,12 @@
 
   /* ---------- index ---------- */
   #indexWrap{z-index:60}
+  #moveWrap{z-index:85}
   .ixRow{display:flex;align-items:center;gap:10px;padding:11px 6px;
     border-bottom:1px solid rgba(138,106,52,.28)}
   .ixName{flex:1;font-family:'IM Fell English',serif;font-size:19px;color:#241a10}
   .ixCount{font-size:12.5px;letter-spacing:.12em;color:#6d5230;text-transform:uppercase}
   #ixNewRow{display:flex;gap:8px;margin-top:14px}
-  #ixNewName{flex:1}
 
   /* ---------- frame panel ---------- */
   #frameWrap{z-index:70}
@@ -193,6 +193,19 @@
   .mvName b{font-family:'IM Fell English',serif;font-size:17px;color:#241a10;font-weight:normal;display:block}
   .mvName i{font-size:12.5px;color:#6d5230}
   .ixPos{font-size:12px;color:#8a744c;letter-spacing:.08em;margin-top:2px;font-family:'EB Garamond',serif}
+  .mvRow{border:1px solid transparent;border-radius:3px;margin-bottom:6px;padding:10px}
+  .mvRow.free{cursor:pointer;background:rgba(255,250,235,.2)}
+  .mvRow.free:hover{background:rgba(180,140,74,.12)}
+  .mvRow.selected{border-color:#7a2b1e;background:rgba(122,43,30,.09);box-shadow:inset 3px 0 #7a2b1e}
+  .mvRow.occupied{opacity:.68;background:rgba(80,60,35,.08)}
+  .mvState{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7a2b1e;margin-top:3px}
+  .guideNote{font-size:13.5px;line-height:1.4;color:#6d5230;font-style:italic;margin:8px 0 12px}
+  #placementBar{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;
+    display:none;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;width:min(720px,94vw);
+    padding:11px 14px;background:rgba(24,17,9,.96);border:1px solid rgba(228,185,107,.7);
+    box-shadow:0 12px 36px rgba(0,0,0,.65);border-radius:3px;color:#e9dcbd}
+  #placementBar strong{font-family:'IM Fell English',serif;font-weight:normal;color:#e4b96b;margin-right:auto}
+  #placementBar button{padding:6px 12px}
 
   /* ---------- welcome ---------- */
   #welcome{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
@@ -221,7 +234,11 @@
     .hud-title{font-size:12.5px}
     .paperPanel{padding:20px 18px 16px}
     .itemRow{padding:13px 6px}
+    .half{display:block}
+    .ixRow{flex-wrap:wrap}
+    .ixName{flex-basis:100%}
   }
+  .touch #placementBar{bottom:148px}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
 </style>
 </head>
@@ -276,6 +293,7 @@
     <div id="shList"></div>
     <div id="shEmpty" style="display:none">This shelf is waiting for its first entry.</div>
     <button id="shAdd">+ Add to this collection</button>
+    <div class="guideNote" id="shAddHint" style="display:none">Add an artifact, memory, project, or box. The next panel explains each detail and nothing changes until you save.</div>
     <div id="shFoot">
       <span style="font-size:11px;letter-spacing:.14em;color:#8a744c;text-transform:uppercase">ARTIFACT ROOM · CATALOGUE</span>
       <span><button class="inkLink" id="shMove" style="display:none">Move shelf&#8230;</button>
@@ -289,6 +307,7 @@
   <div class="paperPanel" style="width:min(470px,94vw)">
     <button class="ovClose" id="formClose" aria-label="Close">&#10005;</button>
     <div class="card-eyebrow" id="fEyebrow">NEW ENTRY</div>
+    <div class="guideNote" id="fGuide" style="display:none">Describe the artifact or box below, choose its bookshelf, then press Save. It will appear in that collection immediately.</div>
     <div class="card-rule"></div>
     <div class="fRow"><div class="fLbl">Title</div><input class="fIn" id="fTitle" maxlength="60"></div>
     <div class="half">
@@ -323,10 +342,7 @@
     <div class="sheet-title" style="margin-bottom:4px">The Collections</div>
     <div class="card-rule"></div>
     <div id="ixList"></div>
-    <div id="ixNewRow">
-      <input class="fIn" id="ixNewName" maxlength="42" placeholder="Name a new collection…">
-      <button class="btnMain" id="ixCreate">Create</button>
-    </div>
+    <div id="ixNewRow"><button class="btnMain" id="ixCreate" style="width:100%">+ Create new bookshelf</button></div>
     <div style="margin-top:10px;font-size:13px;font-style:italic;color:#6d5230">
       A new shelf will appear in the room for each collection you create — up to eight in all.</div>
   </div>
@@ -334,13 +350,30 @@
 
 <!-- move shelf -->
 <div class="ovWrap" id="moveWrap" role="dialog" aria-modal="true">
-  <div class="paperPanel" style="width:min(440px,94vw)">
+  <div class="paperPanel" style="width:min(620px,94vw)">
     <button class="ovClose" id="moveClose" aria-label="Close">&#10005;</button>
-    <div class="card-eyebrow">MOVE SHELF</div>
+    <div class="card-eyebrow" id="mvEyebrow">CREATE BOOKSHELF</div>
     <div class="sheet-title" style="margin-bottom:4px" id="mvTitle"></div>
+    <div class="guideNote" id="mvIntro"></div>
+    <div id="mvCreateFields">
+      <div class="fRow"><div class="fLbl">Bookshelf name</div><input class="fIn" id="mvName" maxlength="42" placeholder="e.g. Family stories"></div>
+      <div class="half">
+        <div class="fRow"><div class="fLbl">Category / theme (optional)</div><input class="fIn" id="mvTheme" maxlength="32" placeholder="Memories, Work, Travel…"></div>
+        <div class="fRow"><div class="fLbl">Visual style</div><select class="fSel" id="mvStyle"><option value="book">Classic volumes</option><option value="journal">Leather journals</option></select></div>
+      </div>
+    </div>
     <div class="card-rule"></div>
+    <div class="fLbl">Choose a wall position</div>
     <div id="mvList"></div>
+    <div class="fBtns"><button class="btnMain" id="mvConfirm" disabled>Create bookshelf here</button></div>
   </div>
+</div>
+
+<div id="placementBar" role="status" aria-live="polite">
+  <strong id="placementText"></strong>
+  <button class="btnGhost" id="placeGo">Go there</button>
+  <button class="btnGhost" id="placeOpen">Open shelf</button>
+  <button class="inkLink" id="placeUndo">Undo</button>
 </div>
 
 <!-- frame panel -->
@@ -1019,7 +1052,8 @@ function rebuildAnchorBooks(a){
     });
     return;
   }
-  const itemW=a.style==="journal"?0.6:0.36;
+  const renderStyle=col.displayStyle||a.style;
+  const itemW=renderStyle==="journal"?0.6:0.36;
   const pool=propPool(col);
   let n=0, featuredDone=false;
   for(let ui=0; ui<a.units.length; ui++){
@@ -1032,9 +1066,9 @@ function rebuildAnchorBooks(a){
       const slotW=usable/Math.max(rowItems.length,1);
       rowItems.forEach((item,k)=>{
         const x=-usable/2+slotW*(k+0.5)+(rnd()-0.5)*0.15;
-        const {group,main}=makeItemMesh(item,a.style);
-        let labelY=a.style==="journal"?0.7:0.72;
-        if(!featuredDone && a.style==="book"){
+        const {group,main}=makeItemMesh(item,renderStyle);
+        let labelY=renderStyle==="journal"?0.7:0.72;
+        if(!featuredDone && renderStyle==="book"){
           featuredDone=true;
           /* the collection's featured artifact, displayed on a small easel */
           group.rotation.x=-0.28; group.position.set(x,y+0.04,0.09); group.scale.set(1.18,1.18,1.18);
@@ -1051,7 +1085,7 @@ function rebuildAnchorBooks(a){
           label:labelSprite(item.title),labelY:labelY};
         scene.add(rec.label);
         itemInteract.push(rec);
-        if(a.style==="book"){
+        if(renderStyle==="book"){
           let fx=x+0.24;
           const lim=(k<rowItems.length-1)?(-usable/2+slotW*(k+1.5)-0.25):(usable/2-0.05);
           while(fx<lim){ const fb=new THREE.Group();
@@ -1061,7 +1095,7 @@ function rebuildAnchorBooks(a){
       if(rowItems.length===0){
         /* dress empty rows so the shelf still feels curated */
         const r=rnd();
-        if(r<0.45 && a.style==="book"){
+        if(r<0.45 && renderStyle==="book"){
           const fb=new THREE.Group(); let fx=-usable/2+0.15;
           while(fx<usable/2-0.5){ fx+=fillerBookIn(fb,fx,y,rnd)+0.09; if(rnd()<0.3) fx+=0.5; }
           hold(grp,fb);
@@ -1071,7 +1105,7 @@ function rebuildAnchorBooks(a){
           if(rnd()<0.5){ const p2=pool[Math.floor(rnd()*pool.length)](rnd);
             p2.position.set((rnd()-0.5)*usable*0.6,y,0.02); hold(grp,p2); }
         }
-      } else if(a.style==="journal" && rnd()<0.7){
+      } else if(renderStyle==="journal" && rnd()<0.7){
         const p=pool[Math.floor(rnd()*pool.length)](rnd);
         p.position.set(usable/2-0.25,y,0.02); hold(grp,p);
       }
@@ -1312,6 +1346,50 @@ curtain(7.7,-1); curtain(7.7,1); curtainRod(7.7);
 (()=>{ const r2=new THREE.Mesh(new THREE.PlaneGeometry(2.8,4.4),
   new THREE.MeshStandardMaterial({map:rugTex,roughness:.95,color:0xb2bcae}));
   r2.rotation.x=-Math.PI/2; r2.position.set(ROOM.x-2.4,0.014,1.6); scene.add(r2); })();
+
+/* ---------- V2.6 warmth details ---------- */
+function smallPainting(x,y,z,ry,w,h,tones){
+  const g=new THREE.Group();
+  const frame=box(w+0.16,h+0.16,0.07,M.woodDark); g.add(frame);
+  const inner=box(w+0.06,h+0.06,0.075,M.brass); inner.position.z=0.015; g.add(inner);
+  const canvas=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({
+    color:tones[0],roughness:.95,emissive:tones[1],emissiveIntensity:.06}));
+  canvas.position.z=0.06; g.add(canvas);
+  const horizon=box(w*0.72,0.035,0.012,new THREE.MeshStandardMaterial({color:tones[2],roughness:.9}));
+  horizon.position.set(0,-h*0.08,0.07); g.add(horizon);
+  g.position.set(x,y,z); g.rotation.y=ry; scene.add(g);
+}
+smallPainting(-3.3,3.15,-ROOM.z+0.24,0,0.8,1.0,[0x59614f,0x273223,0xc49755]);
+smallPainting(ROOM.x-0.24,3.05,-0.4,-Math.PI/2,0.9,0.72,[0x514458,0x2b2032,0xb98852]);
+function pottedPlant(x,z,s){
+  const g=new THREE.Group();
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.2*s,0.28*s,0.42*s,10),
+    new THREE.MeshStandardMaterial({color:0x6b3d27,roughness:.9}));
+  pot.position.y=0.21*s; g.add(pot);
+  const soil=new THREE.Mesh(new THREE.CylinderGeometry(0.19*s,0.19*s,0.025*s,10),M.woodDark);
+  soil.position.y=0.43*s; g.add(soil);
+  const leafMat=new THREE.MeshStandardMaterial({color:0x35523a,roughness:.86,side:THREE.DoubleSide});
+  for(let i=0;i<7;i++){
+    const leaf=new THREE.Mesh(new THREE.SphereGeometry(0.18*s,7,5),leafMat);
+    const a=i/7*Math.PI*2; leaf.scale.set(0.52,1.7,0.32);
+    leaf.position.set(Math.cos(a)*0.16*s,0.7*s+(i%2)*0.13*s,Math.sin(a)*0.16*s);
+    leaf.rotation.z=Math.cos(a)*0.55; leaf.rotation.x=Math.sin(a)*0.45; g.add(leaf);
+  }
+  g.position.set(x,0,z); scene.add(g);
+}
+pottedPlant(5.0,-6.8,0.9); pottedPlant(-4.0,6.9,0.78); pottedPlant(9.3,6.7,0.72);
+function wallSconce(x,y,z,ry){
+  const g=new THREE.Group();
+  const plate=box(0.18,0.32,0.06,M.brass); g.add(plate);
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.22,7),M.brass);
+  arm.rotation.x=Math.PI/2; arm.position.set(0,-0.02,0.13); g.add(arm);
+  const shade=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.16,0.22,10,1,true),
+    new THREE.MeshStandardMaterial({color:0xb1783d,roughness:.65,side:THREE.DoubleSide,emissive:0x6b3512,emissiveIntensity:.65}));
+  shade.position.set(0,-0.02,0.27); shade.rotation.x=Math.PI/2; g.add(shade);
+  g.position.set(x,y,z); g.rotation.y=ry; scene.add(g);
+  const light=new THREE.PointLight(0xffc982,0.38,4.8,2); light.position.set(x,y,z); scene.add(light);
+}
+wallSconce(-5.7,3.25,-ROOM.z+0.28,0); wallSconce(5.7,3.25,-ROOM.z+0.28,0);
 
 /* ---------- lighting ---------- */
 scene.add(new THREE.AmbientLight(0x3e3020,0.62));
@@ -1631,13 +1709,14 @@ $("sheetClose").addEventListener('click',closeSheet);
 $("sheetWrap").addEventListener('click',e=>{ if(e.target===$("sheetWrap")) closeSheet(); });
 function renderSheet(){
   const col=colById(sheetColId); if(!col) return;
-  $("shRef").textContent="SHELF "+ROMAN[col.anchor]+" \u00b7 "+col.items.length+(col.items.length===1?" ITEM":" ITEMS");
+  $("shRef").textContent="SHELF "+ROMAN[col.anchor]+(col.theme?(" \u00b7 "+col.theme.toUpperCase()):"")+" \u00b7 "+col.items.length+(col.items.length===1?" ITEM":" ITEMS");
   $("shTitle").textContent=col.name;
   $("shTitle").style.display=sheetEdit?"none":"block";
   const rn=$("shRename");
   rn.style.display=sheetEdit?"block":"none"; rn.value=col.name;
   $("shEditBtn").textContent=sheetEdit?"Done":"Edit";
   $("shAdd").style.display=sheetEdit?"block":"none";
+  $("shAddHint").style.display=sheetEdit?"block":"none";
   $("shDelete").style.display=sheetEdit?"inline":"none";
   $("shMove").style.display=sheetEdit?"inline":"none";
   /* chips */
@@ -1685,33 +1764,81 @@ $("shRename").addEventListener('keydown',e=>{ if(e.key==="Enter") $("shEditBtn")
 $("shAdd").addEventListener('click',()=>openForm(null,sheetColId));
 $("shDelete").addEventListener('click',()=>{
   const col=colById(sheetColId);
-  if(col.items.length){ toast("Move or remove its items first."); return; }
-  if(!confirm("Remove the collection \u201c"+col.name+"\u201d? The shelf itself remains."))return;
+  const warning=col.items.length
+    ? "Delete \u201c"+col.name+"\u201d and its "+col.items.length+" item"+(col.items.length===1?"":"s")+"? This cannot be undone."
+    : "Delete the empty bookshelf \u201c"+col.name+"\u201d?";
+  if(!confirm(warning))return;
   DB.collections=DB.collections.filter(c=>c.id!==col.id);
-  saveState(); rebuildAll(); closeSheet(); toast("The shelf stands empty again.");
+  saveState(); rebuildAll(); closeSheet(); toast("Bookshelf deleted.");
 });
-$("shMove").addEventListener('click',()=>{
-  const col=colById(sheetColId); if(!col) return;
-  $("mvTitle").textContent=col.name;
+let placementMode="create", placementColId=null, placementSelected=null, placementUndo=null;
+function openPlacement(mode,colId){
+  placementMode=mode; placementColId=colId||null; placementSelected=null;
+  const col=colId?colById(colId):null;
+  $("mvEyebrow").textContent=mode==="create"?"CREATE NEW BOOKSHELF":"MOVE BOOKSHELF";
+  $("mvTitle").textContent=mode==="create"?"Create new bookshelf":col.name;
+  $("mvIntro").textContent=mode==="create"
+    ? "Name the shelf, choose its character, then select exactly where it should appear in the room."
+    : "Choose a new wall position. Occupied places stay visible so you can see what is already there.";
+  $("mvCreateFields").style.display=mode==="create"?"block":"none";
+  if(mode==="create"){ $("mvName").value=""; $("mvTheme").value=""; $("mvStyle").value="book"; }
+  else placementSelected=col.anchor;
+  renderPlacement();
+  $("moveWrap").style.display="flex";
+  if(mode==="create") setTimeout(()=>$('mvName').focus(),50);
+}
+function renderPlacement(){
+  const moving=placementMode==="move"?colById(placementColId):null;
   const list=$("mvList"); list.innerHTML="";
   ANCHORS.forEach((a,i)=>{
-    const occ=colByAnchor(i);
-    const row=document.createElement('div'); row.className="mvRow";
+    const occ=colByAnchor(i), current=!!moving&&moving.anchor===i;
+    const free=!occ||current;
+    const row=document.createElement('div');
+    row.className="mvRow "+(free?"free":"occupied")+(placementSelected===i?" selected":"");
     const nm=document.createElement('div'); nm.className="mvName";
+    const state=current?"Current position":occ?("Unavailable \u00b7 "+occ.name):"Available";
     nm.innerHTML="<b>"+ROMAN[i]+" \u2014 "+escapeHtml(a.name)+"</b><i>"+
-      (occ?(occ.id===col.id?"current position":"holds \u201c"+escapeHtml(occ.name)+"\u201d"):"free")+"</i>";
+      (occ?(current?"This bookshelf is here":"Occupied by \u201c"+escapeHtml(occ.name)+"\u201d"):"Open wall position")+"</i>"+
+      "<div class='mvState'>"+escapeHtml(state)+"</div>";
     row.appendChild(nm);
-    if(!occ){
+    if(free&&!current){
       const b=document.createElement('button'); b.className="btnGhost"; b.textContent="Place here";
-      b.onclick=()=>{ col.anchor=i; saveState(); rebuildAll();
-        $("moveWrap").style.display="none"; renderSheet();
-        teleportToAnchor(i); toast("The shelf now stands at "+a.name.toLowerCase()+"."); };
+      b.onclick=()=>{ placementSelected=i; renderPlacement(); };
+      row.onclick=e=>{ if(e.target!==b){ placementSelected=i; renderPlacement(); } };
       row.appendChild(b);
     }
     list.appendChild(row);
   });
-  $("moveWrap").style.display="flex";
+  const confirmBtn=$("mvConfirm");
+  confirmBtn.textContent=placementMode==="create"?"Create bookshelf here":"Move bookshelf here";
+  confirmBtn.disabled=placementSelected==null||(placementMode==="move"&&colById(placementColId).anchor===placementSelected);
+}
+function flashShelf(idx){
+  const a=ANCHORS[idx]; a.highlightUntil=performance.now()+2600;
+  ringMesh.position.set(a.approach.x,0.02,a.approach.z); ringMesh.visible=true;
+  setTimeout(()=>{ if(!state.walk) ringMesh.visible=false; },2600);
+}
+function showPlacementConfirmation(col,oldAnchor,wasNew){
+  placementUndo={colId:col.id,oldAnchor,wasNew};
+  $("placementText").textContent="Bookshelf placed on "+ANCHORS[col.anchor].name;
+  $("placementBar").style.display="flex";
+  flashShelf(col.anchor);
+}
+$("mvConfirm").addEventListener('click',()=>{
+  if(placementSelected==null) return;
+  if(placementMode==="create"){
+    const name=$("mvName").value.trim();
+    if(!name){ $("mvName").focus(); toast("Give the bookshelf a name first."); return; }
+    const col={id:uid(),name,theme:$("mvTheme").value.trim(),displayStyle:$("mvStyle").value,anchor:placementSelected,items:[]};
+    DB.collections.push(col); saveState(); rebuildAll(); $("moveWrap").style.display="none"; closeIndex();
+    showPlacementConfirmation(col,null,true);
+  } else {
+    const col=colById(placementColId), old=col.anchor;
+    col.anchor=placementSelected; saveState(); rebuildAll(); $("moveWrap").style.display="none"; renderSheet();
+    showPlacementConfirmation(col,old,false);
+  }
 });
+$("shMove").addEventListener('click',()=>openPlacement("move",sheetColId));
 $("moveClose").addEventListener('click',()=>$("moveWrap").style.display="none");
 $("moveWrap").addEventListener('click',e=>{ if(e.target===$("moveWrap")) $("moveWrap").style.display="none"; });
 
@@ -1731,12 +1858,16 @@ function openForm(itemId,colId){
     $("fDesc").value=f.item.desc||""; $("fNext").value=f.item.next||"";
     sel.value=f.col.id;
     $("fDelete").style.display="inline";
+    $("fGuide").style.display="none";
+    $("fSave").textContent="Save changes";
   } else {
-    $("fEyebrow").textContent="NEW ENTRY";
+    $("fEyebrow").textContent="ADD ARTIFACT OR BOX";
     $("fTitle").value=""; $("fKind").value=""; $("fStatus").value="ACTIVE";
     $("fColor").value="#1e5c34"; $("fDesc").value=""; $("fNext").value="";
     if(colId) sel.value=colId;
     $("fDelete").style.display="none";
+    $("fGuide").style.display="block";
+    $("fSave").textContent="Add to bookshelf";
   }
   $("formWrap").style.display="flex";
   setTimeout(()=>$("fTitle").focus(),50);
@@ -1762,6 +1893,7 @@ $("fSave").addEventListener('click',()=>{
   } else {
     destCol.items.push(Object.assign({id:uid(),
       color:BOOK_HUES[Math.floor(Math.random()*BOOK_HUES.length)]},vals));
+    toast("Added to “"+destCol.name+"”.");
   }
   saveState(); rebuildAll(); closeForm();
   if($("sheetWrap").style.display==="flex"){ sheetColId=destCol.id; renderSheet(); }
@@ -1770,6 +1902,7 @@ $("fSave").addEventListener('click',()=>{
 $("fDelete").addEventListener('click',()=>{
   if(!formItemId) return;
   const f=findItem(formItemId);
+  if(!confirm("Remove “"+f.item.title+"” from the library?")) return;
   f.col.items=f.col.items.filter(i=>i.id!==f.item.id);
   saveState(); rebuildAll(); closeForm(); closeCard();
   if($("sheetWrap").style.display==="flex") renderSheet();
@@ -1779,7 +1912,7 @@ $("fDelete").addEventListener('click',()=>{
 /* ---------- UI: library index ---------- */
 function openIndex(){
   const list=$("ixList"); list.innerHTML="";
-  DB.collections.forEach(c=>{
+  DB.collections.forEach((c,ci)=>{
     const row=document.createElement('div'); row.className="ixRow";
     const nm=document.createElement('div'); nm.className="ixName";
     nm.innerHTML=escapeHtml(c.name)+
@@ -1791,7 +1924,11 @@ function openIndex(){
     go.onclick=()=>{ teleportToAnchor(c.anchor); closeIndex(); };
     const op=document.createElement('button'); op.className="btnGhost"; op.textContent="Open";
     op.onclick=()=>{ closeIndex(); openSheet(c.id); };
-    row.appendChild(nm); row.appendChild(ct); row.appendChild(go); row.appendChild(op);
+    const up=document.createElement('button'); up.className="rowBtn"; up.innerHTML="&#8593;"; up.title="Move earlier"; up.disabled=ci===0;
+    up.onclick=()=>{ [DB.collections[ci-1],DB.collections[ci]]=[DB.collections[ci],DB.collections[ci-1]]; saveState(); openIndex(); };
+    const down=document.createElement('button'); down.className="rowBtn"; down.innerHTML="&#8595;"; down.title="Move later"; down.disabled=ci===DB.collections.length-1;
+    down.onclick=()=>{ [DB.collections[ci+1],DB.collections[ci]]=[DB.collections[ci],DB.collections[ci+1]]; saveState(); openIndex(); };
+    row.appendChild(nm); row.appendChild(ct); row.appendChild(up); row.appendChild(down); row.appendChild(go); row.appendChild(op);
     list.appendChild(row);
   });
   const free=ANCHORS.filter((a,i)=>!colByAnchor(i)).length;
@@ -1799,7 +1936,6 @@ function openIndex(){
   info.style.cssText="margin-top:8px;font-size:12.5px;letter-spacing:.08em;color:#6d5230;text-transform:uppercase";
   info.textContent=free+" shelf position"+(free===1?"":"s")+" free";
   list.appendChild(info);
-  $("ixNewName").value="";
   $("indexWrap").style.display="flex";
 }
 function closeIndex(){ $("indexWrap").style.display="none"; }
@@ -1807,19 +1943,26 @@ $("indexBtn").addEventListener('click',()=>{ if($("indexWrap").style.display==="
 $("indexClose").addEventListener('click',closeIndex);
 $("indexWrap").addEventListener('click',e=>{ if(e.target===$("indexWrap")) closeIndex(); });
 $("ixCreate").addEventListener('click',()=>{
-  const name=$("ixNewName").value.trim();
-  if(!name){ $("ixNewName").focus(); return; }
-  const used=new Set(DB.collections.map(c=>c.anchor));
-  let free=ANCHORS.findIndex((a,i)=>a.extra && !used.has(i));
-  if(free<0) free=ANCHORS.findIndex((a,i)=>!used.has(i));
-  if(free<0){ toast("The room holds eight collections — rename or clear one first."); return; }
-  const col={id:uid(),name,anchor:free,items:[]};
-  DB.collections.push(col);
-  saveState(); rebuildAll(); closeIndex();
-  teleportToAnchor(free);
-  toast("A new shelf has appeared for “"+name+"”.");
+  if(ANCHORS.every((a,i)=>!!colByAnchor(i))){ toast("The room holds eight collections — move or delete one first."); return; }
+  openPlacement("create",null);
 });
-$("ixNewName").addEventListener('keydown',e=>{ if(e.key==="Enter") $("ixCreate").click(); });
+$("placeGo").addEventListener('click',()=>{
+  const col=placementUndo&&colById(placementUndo.colId); if(!col) return;
+  teleportToAnchor(col.anchor); $("placementBar").style.display="none";
+});
+$("placeOpen").addEventListener('click',()=>{
+  const col=placementUndo&&colById(placementUndo.colId); if(!col) return;
+  $("placementBar").style.display="none"; openSheet(col.id);
+});
+$("placeUndo").addEventListener('click',()=>{
+  if(!placementUndo) return;
+  const u=placementUndo, col=colById(u.colId);
+  if(u.wasNew) DB.collections=DB.collections.filter(c=>c.id!==u.colId);
+  else if(col) col.anchor=u.oldAnchor;
+  saveState(); rebuildAll(); $("placementBar").style.display="none"; placementUndo=null;
+  if($("sheetWrap").style.display==="flex"){ if(colById(sheetColId)) renderSheet(); else closeSheet(); }
+  toast("Placement undone.");
+});
 function teleportToAnchor(idx){
   const a=ANCHORS[idx];
   avatar.position.set(a.approach.x,0,a.approach.z);
@@ -2035,6 +2178,11 @@ function animate(){
   if(prevPlaque && prevPlaque!==activePlaque && prevPlaque.material.emissiveIntensity!==undefined)
     prevPlaque.material.emissiveIntensity=0;
   if(activePlaque) activePlaque.material.emissiveIntensity=0.22+Math.sin(t*4)*0.1;
+  ANCHORS.forEach(a=>{
+    if(!a.plaqueMesh) return;
+    if(a.highlightUntil>performance.now()) a.plaqueMesh.material.emissiveIntensity=0.55+Math.sin(t*7)*0.2;
+    else if(a.plaqueMesh!==activePlaque) a.plaqueMesh.material.emissiveIntensity=0;
+  });
 
   /* item glow: hover (desktop) + close proximity */
   for(const it of itemInteract){
