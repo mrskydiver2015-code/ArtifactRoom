@@ -155,12 +155,12 @@
 
   /* ---------- index ---------- */
   #indexWrap{z-index:60}
-  #moveWrap{z-index:85}
   .ixRow{display:flex;align-items:center;gap:10px;padding:11px 6px;
     border-bottom:1px solid rgba(138,106,52,.28)}
   .ixName{flex:1;font-family:'IM Fell English',serif;font-size:19px;color:#241a10}
   .ixCount{font-size:12.5px;letter-spacing:.12em;color:#6d5230;text-transform:uppercase}
   #ixNewRow{display:flex;gap:8px;margin-top:14px}
+  #ixNewName{flex:1}
 
   /* ---------- frame panel ---------- */
   #frameWrap{z-index:70}
@@ -170,6 +170,15 @@
   .fileLbl{display:inline-block;font-family:'EB Garamond',serif;font-size:15px;color:#4a3a28;
     border:1px solid #a58a58;padding:8px 16px;border-radius:2px;cursor:pointer;background:rgba(255,250,235,.5)}
   .fileLbl:hover{background:#d8c69c}
+
+  /* ---------- entrance title ---------- */
+  #roomTitle{position:absolute;top:16%;left:50%;transform:translateX(-50%);
+    text-align:center;pointer-events:none;opacity:0;transition:opacity 1.4s ease;
+    font-family:'IM Fell English',serif;color:#e9dcbd;letter-spacing:.34em;
+    font-size:clamp(20px,4.2vw,34px);text-shadow:0 2px 18px rgba(0,0,0,.8)}
+  #roomTitle span{display:block;font-size:clamp(11px,1.8vw,14px);letter-spacing:.5em;
+    color:#c9a86a;margin-top:10px;font-style:italic}
+  #roomTitle.show{opacity:1}
 
   /* ---------- walk bar / nav / pickers ---------- */
   #walkBar{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);
@@ -193,19 +202,6 @@
   .mvName b{font-family:'IM Fell English',serif;font-size:17px;color:#241a10;font-weight:normal;display:block}
   .mvName i{font-size:12.5px;color:#6d5230}
   .ixPos{font-size:12px;color:#8a744c;letter-spacing:.08em;margin-top:2px;font-family:'EB Garamond',serif}
-  .mvRow{border:1px solid transparent;border-radius:3px;margin-bottom:6px;padding:10px}
-  .mvRow.free{cursor:pointer;background:rgba(255,250,235,.2)}
-  .mvRow.free:hover{background:rgba(180,140,74,.12)}
-  .mvRow.selected{border-color:#7a2b1e;background:rgba(122,43,30,.09);box-shadow:inset 3px 0 #7a2b1e}
-  .mvRow.occupied{opacity:.68;background:rgba(80,60,35,.08)}
-  .mvState{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7a2b1e;margin-top:3px}
-  .guideNote{font-size:13.5px;line-height:1.4;color:#6d5230;font-style:italic;margin:8px 0 12px}
-  #placementBar{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;
-    display:none;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;width:min(720px,94vw);
-    padding:11px 14px;background:rgba(24,17,9,.96);border:1px solid rgba(228,185,107,.7);
-    box-shadow:0 12px 36px rgba(0,0,0,.65);border-radius:3px;color:#e9dcbd}
-  #placementBar strong{font-family:'IM Fell English',serif;font-weight:normal;color:#e4b96b;margin-right:auto}
-  #placementBar button{padding:6px 12px}
 
   /* ---------- welcome ---------- */
   #welcome{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
@@ -234,11 +230,7 @@
     .hud-title{font-size:12.5px}
     .paperPanel{padding:20px 18px 16px}
     .itemRow{padding:13px 6px}
-    .half{display:block}
-    .ixRow{flex-wrap:wrap}
-    .ixName{flex-basis:100%}
   }
-  .touch #placementBar{bottom:148px}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
 </style>
 </head>
@@ -249,6 +241,7 @@
 <div id="hud">
   <div class="hud-title">ARTIFACT ROOM<small>Patrik's memory library</small></div>
   <div class="hud-btns">
+    <button class="rbtn" id="constBtn" title="The Constellation (C)" aria-label="Toggle constellation">&#10022;</button>
     <button class="rbtn" id="indexBtn" title="Library index" aria-label="Library index">&#9776;</button>
     <button class="rbtn" id="helpBtn" title="Help" aria-label="Help">?</button>
     <button class="rbtn" id="resetBtn" title="Return to the door" aria-label="Reset position">&#8634;</button>
@@ -256,6 +249,7 @@
   <div id="prompt"></div>
   <div id="toast"></div>
   <div id="walkBar"><span id="wbText"></span><button id="wbOpen">Open now</button><button id="wbCancel">&#10005;</button></div>
+  <div id="roomTitle">THE ARTIFACT ROOM<span>EST. MMXXVI</span></div>
   <div id="joy"><div id="joyKnob"></div></div>
   <button id="examineBtn">Open</button>
 </div>
@@ -270,9 +264,11 @@
     <div class="card-desc" id="cDesc"></div>
     <div class="card-row"><div class="card-label">Status</div><div><span class="stamp" id="cStatus"></span></div></div>
     <div class="next-action"><b>NEXT ACTION</b><span id="cNext"></span></div>
+    <div style="margin-top:10px"><a id="cLink" href="#" target="_blank" rel="noopener"
+      class="inkLink" style="display:none;text-decoration:none">Open project &#8599;</a></div>
     <div class="card-footer"><span id="cRef"></span>
       <div style="display:flex;gap:12px;align-items:center">
-        <div class="cardNav"><button id="cPrev" aria-label="Previous item">&#8249;</button><button id="cNext" aria-label="Next item">&#8250;</button></div>
+        <div class="cardNav"><button id="cNavPrev" aria-label="Previous item">&#8249;</button><button id="cNavNext" aria-label="Next item">&#8250;</button></div>
         <button class="inkLink" id="cEdit">Edit</button>
       </div></div>
   </div>
@@ -293,7 +289,6 @@
     <div id="shList"></div>
     <div id="shEmpty" style="display:none">This shelf is waiting for its first entry.</div>
     <button id="shAdd">+ Add to this collection</button>
-    <div class="guideNote" id="shAddHint" style="display:none">Add an artifact, memory, project, or box. The next panel explains each detail and nothing changes until you save.</div>
     <div id="shFoot">
       <span style="font-size:11px;letter-spacing:.14em;color:#8a744c;text-transform:uppercase">ARTIFACT ROOM · CATALOGUE</span>
       <span><button class="inkLink" id="shMove" style="display:none">Move shelf&#8230;</button>
@@ -307,7 +302,6 @@
   <div class="paperPanel" style="width:min(470px,94vw)">
     <button class="ovClose" id="formClose" aria-label="Close">&#10005;</button>
     <div class="card-eyebrow" id="fEyebrow">NEW ENTRY</div>
-    <div class="guideNote" id="fGuide" style="display:none">Describe the artifact or box below, choose its bookshelf, then press Save. It will appear in that collection immediately.</div>
     <div class="card-rule"></div>
     <div class="fRow"><div class="fLbl">Title</div><input class="fIn" id="fTitle" maxlength="60"></div>
     <div class="half">
@@ -326,6 +320,7 @@
     </div>
     <div class="fRow"><div class="fLbl">Description</div><textarea class="fTa" id="fDesc" maxlength="400"></textarea></div>
     <div class="fRow"><div class="fLbl">Next action</div><textarea class="fTa" id="fNext" maxlength="240"></textarea></div>
+    <div class="fRow"><div class="fLbl">Link (optional)</div><input class="fSel" id="fLink" maxlength="300" placeholder="https://&#8230;"></div>
     <div class="fBtns">
       <button class="inkLink" id="fDelete" style="margin-right:auto;display:none">Remove from library</button>
       <button class="btnGhost" id="fCancel">Cancel</button>
@@ -342,38 +337,74 @@
     <div class="sheet-title" style="margin-bottom:4px">The Collections</div>
     <div class="card-rule"></div>
     <div id="ixList"></div>
-    <div id="ixNewRow"><button class="btnMain" id="ixCreate" style="width:100%">+ Create new bookshelf</button></div>
+    <div id="ixNewRow">
+      <input class="fIn" id="ixNewName" maxlength="42" placeholder="Name a new collection…">
+      <button class="btnMain" id="ixCreate">Create</button>
+    </div>
     <div style="margin-top:10px;font-size:13px;font-style:italic;color:#6d5230">
       A new shelf will appear in the room for each collection you create — up to eight in all.</div>
   </div>
 </div>
 
-<!-- move shelf -->
-<div class="ovWrap" id="moveWrap" role="dialog" aria-modal="true">
-  <div class="paperPanel" style="width:min(620px,94vw)">
-    <button class="ovClose" id="moveClose" aria-label="Close">&#10005;</button>
-    <div class="card-eyebrow" id="mvEyebrow">CREATE BOOKSHELF</div>
-    <div class="sheet-title" style="margin-bottom:4px" id="mvTitle"></div>
-    <div class="guideNote" id="mvIntro"></div>
-    <div id="mvCreateFields">
-      <div class="fRow"><div class="fLbl">Bookshelf name</div><input class="fIn" id="mvName" maxlength="42" placeholder="e.g. Family stories"></div>
-      <div class="half">
-        <div class="fRow"><div class="fLbl">Category / theme (optional)</div><input class="fIn" id="mvTheme" maxlength="32" placeholder="Memories, Work, Travel…"></div>
-        <div class="fRow"><div class="fLbl">Visual style</div><select class="fSel" id="mvStyle"><option value="book">Classic volumes</option><option value="journal">Leather journals</option></select></div>
-      </div>
-    </div>
+<!-- visitors' ledger -->
+<div class="ovWrap" id="ledgerWrap" role="dialog" aria-modal="true">
+  <div class="paperPanel" style="width:min(440px,94vw)">
+    <button class="ovClose" id="ledgerClose" aria-label="Close">&#10005;</button>
+    <div class="card-eyebrow">THE VISITORS&#8217; LEDGER</div>
+    <div style="font-style:italic;color:#6d5230;font-size:14px;margin:2px 0 10px">
+      A record kept by this room, on this device.</div>
     <div class="card-rule"></div>
-    <div class="fLbl">Choose a wall position</div>
-    <div id="mvList"></div>
-    <div class="fBtns"><button class="btnMain" id="mvConfirm" disabled>Create bookshelf here</button></div>
+    <div id="lgList" style="max-height:40vh;overflow-y:auto;margin:4px 0 8px"></div>
+    <div style="font-size:12px;letter-spacing:.1em;color:#8a744c;text-transform:uppercase;
+      border-top:1px dashed rgba(138,106,52,.4);padding-top:10px">
+      The remaining pages are reserved for travelling visitors, when they may come.</div>
   </div>
 </div>
 
-<div id="placementBar" role="status" aria-live="polite">
-  <strong id="placementText"></strong>
-  <button class="btnGhost" id="placeGo">Go there</button>
-  <button class="btnGhost" id="placeOpen">Open shelf</button>
-  <button class="inkLink" id="placeUndo">Undo</button>
+<!-- notice board -->
+<div class="ovWrap" id="boardWrap" role="dialog" aria-modal="true">
+  <div class="paperPanel" style="width:min(460px,94vw)">
+    <button class="ovClose" id="boardClose" aria-label="Close">&#10005;</button>
+    <div class="card-eyebrow">THE NOTICE BOARD</div>
+    <div style="font-style:italic;color:#6d5230;font-size:14px;margin:2px 0 10px">
+      Kept in this room only, on this device. One day, real visitors may read it too.</div>
+    <div class="card-rule"></div>
+    <div id="bdList" style="max-height:44vh;overflow-y:auto;margin:4px 0 12px"></div>
+    <div class="fRow"><div class="fLbl">Pin a note</div>
+      <input class="fSel" id="bdText" maxlength="140" placeholder="Leave a few words&#8230;"></div>
+    <div class="fBtns">
+      <button class="btnMain" id="bdPin">Pin to the board</button>
+    </div>
+  </div>
+</div>
+
+<!-- claim an available shelf -->
+<div class="ovWrap" id="claimWrap" role="dialog" aria-modal="true">
+  <div class="paperPanel" style="width:min(420px,94vw)">
+    <button class="ovClose" id="claimClose" aria-label="Close">&#10005;</button>
+    <div class="card-eyebrow">AVAILABLE SHELF</div>
+    <div class="sheet-title" style="margin-bottom:2px" id="clWhere"></div>
+    <div style="font-style:italic;color:#6d5230;font-size:14.5px;margin-bottom:12px">
+      Give this shelf a purpose and it becomes a collection of its own.</div>
+    <div class="card-rule"></div>
+    <div class="fRow"><div class="fLbl">Collection name</div>
+      <input class="fSel" id="clName" maxlength="42" placeholder="e.g. Crypto &amp; Investments"></div>
+    <div class="fBtns">
+      <button class="btnGhost" id="clCancel">Not yet</button>
+      <button class="btnMain" id="clCreate">Begin the collection</button>
+    </div>
+  </div>
+</div>
+
+<!-- move shelf -->
+<div class="ovWrap" id="moveWrap" role="dialog" aria-modal="true">
+  <div class="paperPanel" style="width:min(440px,94vw)">
+    <button class="ovClose" id="moveClose" aria-label="Close">&#10005;</button>
+    <div class="card-eyebrow">MOVE SHELF</div>
+    <div class="sheet-title" style="margin-bottom:4px" id="mvTitle"></div>
+    <div class="card-rule"></div>
+    <div id="mvList"></div>
+  </div>
 </div>
 
 <!-- frame panel -->
@@ -401,9 +432,19 @@
   <div class="w-inner">
     <div class="w-eyebrow">The collection of</div>
     <div class="w-title">Artifact Room</div>
+    <div style="font-size:11px;letter-spacing:.42em;color:#8a744c;margin-top:2px">SIGNATURE EDITION</div>
     <div class="w-sub">Every shelf holds something you built, learned or lived.<br>Walk in — or simply tap where you want to go.</div>
     <div class="w-ctl" id="ctlDesktop"><span class="k">W A S D</span> walk · drag to look · click anything to walk over &amp; open<br><span class="k">E</span> step up to what is near · <span class="k">R</span> open it directly · <span class="k">&#9776;</span> library index</div>
     <div class="w-ctl" id="ctlTouch" style="display:none">Left stick walks · drag right side to look<br>Tap any shelf, book or frame — you walk over and it opens<br>While walking, &#8220;Open now&#8221; skips the stroll · <span class="k">&#9776;</span> library index</div>
+    <div style="margin:6px 0 12px">
+      <input id="guestName" maxlength="18" placeholder="Your name (optional)"
+        style="font-family:'EB Garamond',serif;font-size:16px;color:#241a10;background:rgba(255,250,235,.75);
+        border:1px solid #a58a58;border-radius:2px;padding:9px 12px;width:min(260px,80%);text-align:center">
+      <div style="font-size:12px;color:#8a744c;margin-top:6px;letter-spacing:.04em">
+        Local guest mode — the name lives only on this device. Real shared rooms may come later.</div>
+      <div id="colorRow" style="display:flex;gap:10px;justify-content:center;margin-top:12px"></div>
+      <div style="font-size:12px;color:#8a744c;margin-top:5px;letter-spacing:.04em">Choose the colour of your coat</div>
+    </div>
     <button id="enterBtn">Enter the library</button><br>
     <button id="restoreLink">Restore the original collections</button>
   </div>
@@ -417,7 +458,7 @@
    ============================================================ */
 
 /* ---------- seed data ---------- */
-const ROMAN=["I","II","III","IV","V","VI","VII","VIII"];
+const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
 function uid(){ return 'x'+Math.random().toString(36).slice(2,9); }
 
 function seedState(){
@@ -534,9 +575,32 @@ function seedState(){
           desc:"The map of meaningful places — where things happened, where you return in thought.",
           status:"COLLECTING", sColor:"#1e5c34",
           next:"List five places; find one photograph for each." }
+      ]},
+      { id:"c-new", name:"New Acquisitions", anchor:4, items:[] },
+      { id:"c-learn", name:"Learning & Experiments", anchor:5, items:[
+        { id:uid(), title:"Prompt Patterns Notebook", kind:"Lessons", color:0x2e3a2a,
+          desc:"The prompting techniques that actually work \u2014 collected from real sessions, not theory.",
+          status:"GROWING", sColor:"#1e5c34",
+          next:"Write down the three patterns used most this month." },
+        { id:uid(), title:"Three.js Sketches", kind:"Experiments", color:0x452020,
+          desc:"Small scenes and effects tried once and kept \u2014 the parts bin this very room was built from.",
+          status:"ACTIVE", sColor:"#1e5c34",
+          next:"Rebuild the best sketch as a reusable snippet." },
+        { id:uid(), title:"Reading List 2026", kind:"Ideas", color:0x3c341f,
+          desc:"Books and essays queued for the armchair by the fire.",
+          status:"QUEUED", sColor:"#8a5a17",
+          next:"Pick the next book and put it on the reading table." }
       ]}
     ],
-    frames:{ f1:{img:null,caption:""}, f2:{img:null,caption:""}, f3:{img:null,caption:""} }
+    visitors:true, guestName:"", playerColor:"#6b5a42", music:false,
+    visits:0, lastVisit:0, visitLog:[],
+    notes:[
+      {n:"Elin",txt:"The vitrines are splendid tonight.",ts:0},
+      {n:"Kalle",txt:"Claimed shelves make the best stories.",ts:0},
+      {n:"Herr Lindqvist",txt:"A fine room. I shall return.",ts:0}
+    ],
+    frames:{ f1:{img:null,caption:""}, f2:{img:null,caption:""}, f3:{img:null,caption:""},
+             f4:{img:null,caption:""}, f5:{img:null,caption:""}, f6:{img:null,caption:""} }
   };
 }
 
@@ -546,7 +610,24 @@ let DB=null, storageOk=true, warnedStorage=false;
 function loadState(){
   try{
     const raw=localStorage.getItem(STORE_KEY);
-    if(raw){ const d=JSON.parse(raw); if(d && d.v===2 && Array.isArray(d.collections)) return d; }
+    if(raw){ const d=JSON.parse(raw);
+      if(d && d.v===2 && Array.isArray(d.collections)){
+        d.frames=Object.assign(
+          {f1:{img:null,caption:""},f2:{img:null,caption:""},f3:{img:null,caption:""},
+           f4:{img:null,caption:""},f5:{img:null,caption:""},f6:{img:null,caption:""}}, d.frames||{});
+        if(d.visitors===undefined) d.visitors=true;
+        if(d.guestName===undefined) d.guestName="";
+        if(d.playerColor===undefined) d.playerColor="#6b5a42";
+        if(d.music===undefined) d.music=false;
+        if(d.visits===undefined) d.visits=0;
+        if(d.lastVisit===undefined) d.lastVisit=0;
+        if(d.visitLog===undefined) d.visitLog=[];
+        if(d.notes===undefined) d.notes=[
+          {n:"Elin",txt:"The vitrines are splendid tonight.",ts:0},
+          {n:"Kalle",txt:"Claimed shelves make the best stories.",ts:0},
+          {n:"Herr Lindqvist",txt:"A fine room. I shall return.",ts:0}];
+        return d;
+      } }
   }catch(e){ storageOk=false; }
   return seedState();
 }
@@ -576,7 +657,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH?1.6:2));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.12;
+renderer.toneMappingExposure=1.18;
 stage.appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
@@ -750,10 +831,13 @@ function setPlaqueText(mesh,text){
   if(mesh.material.map) mesh.material.map.dispose();
   mesh.material.map=plaqueTexture(text); mesh.material.needsUpdate=true;
 }
-function labelSprite(text){
+function labelSprite(text,style){
+  const bg=style==="brass"?"rgba(206,168,96,.96)"
+          :style==="silver"?"rgba(198,206,214,.95)"   /* reserved: future real remote visitors */
+          :"rgba(233,220,189,.95)";
   const t=canvasTex(512,140,(g)=>{
     g.clearRect(0,0,512,140);
-    g.fillStyle="rgba(233,220,189,.95)";
+    g.fillStyle=bg;
     const r=16; g.beginPath();
     g.moveTo(40+r,20); g.lineTo(472-r,20); g.quadraticCurveTo(472,20,472,20+r);
     g.lineTo(472,88-r); g.quadraticCurveTo(472,88,472-r,88);
@@ -832,16 +916,26 @@ const ANCHORS=[
     plaque:{x:-7.8,y:3.5,z:ROOM.z-0.36,ry:Math.PI,w:2.4},
     zones:[{x:-7.8,z:6.9,r:2.5}],
     approach:{x:-7.8,z:6.6}, face:{x:0,z:1} },
-  { name:"East wall \u00b7 north end", style:"book", extra:true,
-    units:[{x:ROOM.x-0.45,z:-4.6,ry:-Math.PI/2,w:2.6,h:3.4,rows:4}],
-    plaque:{x:ROOM.x-0.36,y:3.9,z:-4.6,ry:-Math.PI/2,w:2.6},
-    zones:[{x:11.8,z:-4.6,r:2.6}],
-    approach:{x:11.3,z:-4.6}, face:{x:1,z:0} },
-  { name:"West wall \u00b7 south end", style:"book", extra:true,
+  { name:"East wall \u00b7 north end", style:"book", extra:false,
+    units:[{x:ROOM.x-0.45,z:-5.4,ry:-Math.PI/2,w:2.6,h:3.4,rows:4}],
+    plaque:{x:ROOM.x-0.36,y:3.9,z:-5.4,ry:-Math.PI/2,w:2.6},
+    zones:[{x:11.8,z:-5.4,r:2.6}],
+    approach:{x:11.3,z:-5.4}, face:{x:1,z:0} },
+  { name:"West wall \u00b7 south end", style:"book", extra:false,
     units:[{x:-ROOM.x+0.45,z:4.6,ry:Math.PI/2,w:2.6,h:3.4,rows:4}],
     plaque:{x:-ROOM.x+0.34,y:3.9,z:4.6,ry:Math.PI/2,w:2.6},
     zones:[{x:-11.8,z:4.6,r:2.6}],
-    approach:{x:-11.3,z:4.6}, face:{x:-1,z:0} }
+    approach:{x:-11.3,z:4.6}, face:{x:-1,z:0} },
+  { name:"West wall \u00b7 north corner", style:"book", extra:true,
+    units:[{x:-ROOM.x+0.45,z:-7.0,ry:Math.PI/2,w:2.4,h:3.4,rows:4}],
+    plaque:{x:-ROOM.x+0.34,y:3.9,z:-7.0,ry:Math.PI/2,w:2.4},
+    zones:[{x:-11.8,z:-7.0,r:2.5}],
+    approach:{x:-11.3,z:-7.0}, face:{x:-1,z:0} },
+  { name:"West wall \u00b7 by the door", style:"book", extra:true,
+    units:[{x:-ROOM.x+0.45,z:7.4,ry:Math.PI/2,w:2.2,h:3.0,rows:3}],
+    plaque:{x:-ROOM.x+0.34,y:3.5,z:7.4,ry:Math.PI/2,w:2.2},
+    zones:[{x:-11.8,z:7.4,r:2.4}],
+    approach:{x:-11.3,z:7.4}, face:{x:-1,z:0} }
 ];
 
 function buildAnchor(a,idx){
@@ -860,6 +954,7 @@ function buildAnchor(a,idx){
   const p=a.plaque;
   a.plaqueMesh=makePlaque("",p.w);
   a.plaqueMesh.position.set(p.x,p.y,p.z); a.plaqueMesh.rotation.y=p.ry;
+  a.plaqueMesh.userData.anchorIdx=idx;
   scene.add(a.plaqueMesh);
   a.setVisible=(v)=>{
     a.groups.forEach(g=>g.visible=v); a.plaqueMesh.visible=v;
@@ -1030,6 +1125,24 @@ function propPool(col){
   if(/app|proto|web|tool|pipeline|device|graphic/.test(ks)) pool.push(propCase,propCase);
   return pool; }
 
+const addGhostMats=[];
+function makeAddGhost(){
+  const group=new THREE.Group();
+  const gm=new THREE.MeshStandardMaterial({color:0xd8c69c,transparent:true,opacity:0.26,roughness:.9});
+  addGhostMats.push(gm);
+  const main=box(0.22,0.46,0.3,gm); main.position.y=0.23; group.add(main);
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.44),
+    new THREE.MeshBasicMaterial({map:canvasTex(96,192,(g)=>{
+      g.clearRect(0,0,96,192);
+      g.strokeStyle="rgba(233,220,189,.85)"; g.lineWidth=3;
+      g.setLineDash([7,6]); g.strokeRect(6,6,84,180);
+      g.setLineDash([]);
+      g.beginPath(); g.moveTo(48,72); g.lineTo(48,120); g.moveTo(24,96); g.lineTo(72,96);
+      g.lineWidth=5; g.stroke();
+    }),transparent:true}));
+  face.position.set(0,0.23,0.155); group.add(face);
+  return {group,main};
+}
 function rebuildAnchorBooks(a){
   if(!a.built) return;
   a.artGroup.children.slice().forEach(c=>a.artGroup.remove(c));
@@ -1041,9 +1154,21 @@ function rebuildAnchorBooks(a){
     h.position.copy(grp.position); h.rotation.copy(grp.rotation);
     h.add(obj); a.artGroup.add(h); }
   if(!col){
-    /* vacated shelf: quiet, intentional dressing */
+    /* available shelf: quiet dressing + one clear claim slot */
+    let claimY=null;
+    if(!a.extra){
+      const grp0=a.groups[0], ys0=grp0.userData.shelfYs;
+      claimY=ys0[ys0.length-1];
+      const gh=makeAddGhost();
+      gh.group.position.set(0,claimY,0.05); hold(grp0,gh.group);
+      gh.main.userData.claimIdx=a.idx;
+      const rec={mesh:gh.main,itemId:null,colId:null,anchorIdx:a.idx,
+        label:labelSprite("Claim this shelf"),labelY:0.72};
+      scene.add(rec.label); itemInteract.push(rec);
+    }
     a.units.forEach((u,ui)=>{ const grp=a.groups[ui], ys=grp.userData.shelfYs;
-      ys.forEach((y)=>{ const r=rnd();
+      ys.forEach((y)=>{ if(ui===0 && y===claimY) return;
+        const r=rnd();
         if(r<0.55){ const fb=new THREE.Group();
           let fx=-u.w/2+0.45; const lim=u.w/2-0.65;
           while(fx<lim){ fx+=fillerBookIn(fb,fx,y,rnd)+0.1; if(rnd()<0.4) fx+=0.6; }
@@ -1052,10 +1177,19 @@ function rebuildAnchorBooks(a){
     });
     return;
   }
-  const renderStyle=col.displayStyle||a.style;
-  const itemW=renderStyle==="journal"?0.6:0.36;
+  const itemW=a.style==="journal"?0.6:0.36;
   const pool=propPool(col);
-  let n=0, featuredDone=false;
+  let n=0, featuredDone=false, addPlaced=false;
+  function placeAdd(grp,x,y){
+    if(addPlaced) return; addPlaced=true;
+    const gh=makeAddGhost();
+    gh.group.position.set(x,y,0.05);
+    hold(grp,gh.group);
+    gh.main.userData.addCol=col.id;
+    const rec={mesh:gh.main,itemId:null,colId:col.id,anchorIdx:a.idx,
+      label:labelSprite("+ Add artifact"),labelY:0.72};
+    scene.add(rec.label); itemInteract.push(rec);
+  }
   for(let ui=0; ui<a.units.length; ui++){
     const u=a.units[ui], grp=a.groups[ui], ys=grp.userData.shelfYs;
     for(let ri=ys.length-1; ri>=0; ri--){
@@ -1066,9 +1200,9 @@ function rebuildAnchorBooks(a){
       const slotW=usable/Math.max(rowItems.length,1);
       rowItems.forEach((item,k)=>{
         const x=-usable/2+slotW*(k+0.5)+(rnd()-0.5)*0.15;
-        const {group,main}=makeItemMesh(item,renderStyle);
-        let labelY=renderStyle==="journal"?0.7:0.72;
-        if(!featuredDone && renderStyle==="book"){
+        const {group,main}=makeItemMesh(item,a.style);
+        let labelY=a.style==="journal"?0.7:0.72;
+        if(!featuredDone && a.style==="book"){
           featuredDone=true;
           /* the collection's featured artifact, displayed on a small easel */
           group.rotation.x=-0.28; group.position.set(x,y+0.04,0.09); group.scale.set(1.18,1.18,1.18);
@@ -1085,17 +1219,22 @@ function rebuildAnchorBooks(a){
           label:labelSprite(item.title),labelY:labelY};
         scene.add(rec.label);
         itemInteract.push(rec);
-        if(renderStyle==="book"){
+        if(a.style==="book"){
           let fx=x+0.24;
           const lim=(k<rowItems.length-1)?(-usable/2+slotW*(k+1.5)-0.25):(usable/2-0.05);
           while(fx<lim){ const fb=new THREE.Group();
             const w=fillerBookIn(fb,fx,y,rnd); hold(grp,fb); fx+=w+0.085; }
         }
       });
-      if(rowItems.length===0){
-        /* dress empty rows so the shelf still feels curated */
+      const hadAdd=addPlaced;
+      if(rowItems.length===0 && n>=col.items.length && !addPlaced){
+        /* the first free row gets a visible, clickable "+ Add artifact" slot */
+        placeAdd(grp,-usable/2+0.35,y);
+      }
+      if(rowItems.length===0 && addPlaced===hadAdd){
+        /* dress remaining empty rows so the shelf still feels curated */
         const r=rnd();
-        if(r<0.45 && renderStyle==="book"){
+        if(r<0.45 && a.style==="book"){
           const fb=new THREE.Group(); let fx=-usable/2+0.15;
           while(fx<usable/2-0.5){ fx+=fillerBookIn(fb,fx,y,rnd)+0.09; if(rnd()<0.3) fx+=0.5; }
           hold(grp,fb);
@@ -1105,7 +1244,7 @@ function rebuildAnchorBooks(a){
           if(rnd()<0.5){ const p2=pool[Math.floor(rnd()*pool.length)](rnd);
             p2.position.set((rnd()-0.5)*usable*0.6,y,0.02); hold(grp,p2); }
         }
-      } else if(renderStyle==="journal" && rnd()<0.7){
+      } else if(a.style==="journal" && rnd()<0.7){
         const p=pool[Math.floor(rnd()*pool.length)](rnd);
         p.position.set(usable/2-0.25,y,0.02); hold(grp,p);
       }
@@ -1119,13 +1258,395 @@ function fillerBookIn(group,x,y,rnd){
   const b=box(w,h,0.26,m); b.position.set(x,y+h/2,0.02); b.rotation.z=(rnd()-0.5)*0.03;
   group.add(b); return w;
 }
+/* ---------- V3: window light shafts ---------- */
+(()=>{ const rayM=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0.05,
+    blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  for(const wx of [-5.4,7.7]){
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(1.7,6.4,12,1,true),rayM);
+    cone.position.set(wx,3.2,6.0); cone.rotation.x=-1.05; scene.add(cone);
+  } })();
+
+/* ---------- V3: library guests (local presence — future-friendly for real multiuser) ----------
+   Guests are driven by applyGuestFrame({x,z,ry,walking}) per guest; a later networked
+   version can feed the same structures from a websocket instead of the local wanderer. */
+const guests=[];
+function mkGuest(name,opts){
+  const g=new THREE.Group();
+  const cloth=new THREE.MeshStandardMaterial({color:opts.cloth,roughness:.8});
+  const trous=new THREE.MeshStandardMaterial({color:opts.lower,roughness:.85});
+  const skin=new THREE.MeshStandardMaterial({color:opts.skin,roughness:.7});
+  const hairM=new THREE.MeshStandardMaterial({color:opts.hair,roughness:.85});
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.21,0.55,10),cloth);
+  torso.position.y=1.05; g.add(torso);
+  torso.userData.guestIdx=guests.length;
+  const badge=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.028,0.014,10),M.brass);
+  badge.rotation.x=Math.PI/2; badge.position.set(0.09,1.22,0.2); g.add(badge);
+  /* one shared warm accent = "simulated visitor" */
+  const scarf=new THREE.Mesh(new THREE.TorusGeometry(0.125,0.045,8,14),
+    new THREE.MeshStandardMaterial({color:0xc9863a,roughness:.8}));
+  scarf.rotation.x=Math.PI/2; scarf.position.y=1.38; g.add(scarf);
+  if(opts.skirt){ const sk=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.62,12),cloth);
+    sk.position.y=0.62; g.add(sk); }
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.145,12,12),skin);
+  head.position.y=1.56; g.add(head);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.15,12,8,0,Math.PI*2,0,Math.PI/2.2),hairM);
+  hair.position.y=1.585; g.add(hair);
+  if(opts.hat){ const brim=new THREE.Mesh(new THREE.CylinderGeometry(0.21,0.21,0.02,12),hairM);
+    brim.position.y=1.66; g.add(brim);
+    const top=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.13,0.16,12),hairM);
+    top.position.y=1.74; g.add(top); }
+  function limb(mat,len,r){ const gp=new THREE.Group();
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r*0.85,len,8),mat);
+    m.position.y=-len/2; gp.add(m); return gp; }
+  const lL=limb(trous,0.62,0.075); lL.position.set(-0.09,0.72,0); g.add(lL);
+  const lR=limb(trous,0.62,0.075); lR.position.set(0.09,0.72,0); g.add(lR);
+  const aL=limb(cloth,0.5,0.055); aL.position.set(-0.24,1.28,0); g.add(aL);
+  const aR=limb(cloth,0.5,0.055); aR.position.set(0.24,1.28,0); g.add(aR);
+  const nameTag=labelSprite(name); nameTag.visible=true; scene.add(nameTag);
+  const gu={name,g,lL,lR,aL,aR,tag:nameTag,hit:torso,seat:null,
+    tgt:null,idle:2+Math.random()*3,phase:Math.random()*6,stall:0,lastD:1e9,speech:null};
+  g.position.set(opts.x,0,opts.z);
+  scene.add(g); guests.push(gu); return gu;
+}
+mkGuest("Elin",{cloth:0x3c5a3c,lower:0x2c3a2c,skin:0xdcb896,hair:0x6b4a2a,skirt:true,x:-3.4,z:3.2});
+mkGuest("Herr Lindqvist",{cloth:0x2a2a36,lower:0x1e1e28,skin:0xd2a880,hair:0x2c2620,hat:true,x:5.2,z:-1.8});
+mkGuest("Kalle",{cloth:0x7a4a26,lower:0x3a2c22,skin:0xdcb28a,hair:0x8a6a3a,x:8.2,z:3.4});
+const GUEST_QUOTES=["What a fine collection.","I could stay all evening.",
+  "Did you make all of this yourself?","The light in here is lovely.",
+  "This shelf is my favourite.","One day I should start a library of my own."];
+const SEATS=[{x:-1.9,z:-4.6,ry:0.5,occ:false},{x:1.9,z:-4.6,ry:-0.5,occ:false},
+  {x:-10.5,z:6.8,ry:2.35,occ:false}];
+function guestTargets(){
+  const pts=[];
+  ANCHORS.forEach((a,i)=>{ if(colByAnchor(i))
+    pts.push({x:a.approach.x,z:a.approach.z,fx:a.face.x,fz:a.face.z}); });
+  ["f1","f2","f3","f4"].forEach(id=>{ const f=FRAMES.find(q=>q.id===id);
+    if(f) pts.push({x:f.approach.x,z:f.approach.z,fx:f.face.x,fz:f.face.z}); });
+  pts.push({x:0,z:-4.0},{x:-4.4,z:3.6},{x:4.4,z:3.6});
+  pts.push({x:BOARD.approach.x,z:BOARD.approach.z,fx:1,fz:0,
+    say:["I left a note on the board.","Pin the next salon evening here, someone."]});
+  if(CATG) pts.push({x:CATG.position.x-0.7,z:CATG.position.z+0.7,fx:0.6,fz:-0.7,
+    say:["What a lovely cat.","Shh \u2014 she is sleeping.","There you are, little one."]});
+  pts.push({x:-2.8,z:-5.6,fx:-0.5,fz:-0.8,
+    say:["Ah, this melody again.","Someone should wind the gramophone."]});
+  SEATS.forEach(st=>{ if(!st.occ){
+    if(CATG && Math.hypot(st.x-CATG.position.x,st.z-CATG.position.z)<0.6) return;
+    pts.push({x:st.x+Math.sin(st.ry)*0.6,z:st.z+Math.cos(st.ry)*0.6,sit:st}); } });
+  /* an occupied fireside chair makes the other twice as inviting */
+  const f0=SEATS[0], f1=SEATS[1];
+  const invite=(st)=>{ const tg={x:st.x+Math.sin(st.ry)*0.6,z:st.z+Math.cos(st.ry)*0.6,sit:st};
+    pts.push(tg,tg); };
+  if(f0.occ && !f1.occ) invite(f1);
+  if(f1.occ && !f0.occ) invite(f0);
+  return pts;
+}
+function speakText(gu,text){
+  if(!gu || !gu.g.visible) return;
+  if(gu.speech){ scene.remove(gu.speech.s); }
+  const sp=labelSprite("\u201c"+text+"\u201d"); sp.visible=true; scene.add(sp);
+  gu.speech={s:sp,t:4};
+}
+function guestSpeak(i){
+  const gu=guests[i]; if(!gu) return;
+  let q=GUEST_QUOTES[Math.floor(Math.random()*GUEST_QUOTES.length)];
+  if(DB && DB.guestName && Math.random()<0.3) q="Good evening, "+DB.guestName+".";
+  speakText(gu,q);
+}
+const GUEST_DIALOG=[
+  ["Have you seen the display cases?","Splendid, aren\u2019t they."],
+  ["He built the room himself, you know.","No! All of it?"],
+  ["I do like the light this evening.","Mm. Very warm."],
+  ["That shelf by the fire is my favourite.","Mine is the one by the desk."]];
+let chatTimer=9;
+let playerTag=null;
+function setPlayerTag(){
+  if(playerTag){ scene.remove(playerTag); playerTag=null; }
+  const n=DB&&DB.guestName;
+  if(n){ playerTag=labelSprite(n,"brass"); playerTag.visible=true; scene.add(playerTag); }
+}
+function pushOut(px,pz){
+  for(const c of colliders){ if(c.off) continue;
+    const dx=px-c.x, dz=pz-c.z, d=Math.hypot(dx,dz), min=c.r+0.32;
+    if(d<min && d>0.0001){ px=c.x+dx/d*min; pz=c.z+dz/d*min; } }
+  const dxp=px-avatar.position.x, dzp=pz-avatar.position.z, dp=Math.hypot(dxp,dzp);
+  if(dp<0.7 && dp>0.0001){ px=avatar.position.x+dxp/dp*0.7; pz=avatar.position.z+dzp/dp*0.7; }
+  return [px,pz];
+}
+function sitDown(gu,seat){
+  gu.seat=seat; seat.occ=true;
+  gu.g.position.set(seat.x,-0.05,seat.z); gu.g.rotation.y=seat.ry;
+  gu.lL.rotation.x=-1.45; gu.lR.rotation.x=-1.45;
+  gu.aL.rotation.x=-0.35; gu.aR.rotation.x=-0.35;
+}
+function standUp(gu){
+  if(gu.seat){ gu.seat.occ=false;
+    gu.g.position.set(gu.seat.x+Math.sin(gu.seat.ry)*0.6,0,gu.seat.z+Math.cos(gu.seat.ry)*0.6);
+    gu.seat=null; }
+  gu.g.position.y=0;
+  gu.lL.rotation.x=0; gu.lR.rotation.x=0;
+}
+function updateGuests(dt){
+  const on=DB && DB.visitors!==false;
+  if(playerTag){
+    playerTag.visible=!!(DB&&DB.guestName)&&state.started;
+    if(playerTag.visible) playerTag.position.set(avatar.position.x,2.12,avatar.position.z);
+  }
+  guests.forEach((gu,i)=>{
+    gu.g.visible=on; gu.tag.visible=on;
+    if(gu.speech){ gu.speech.t-=dt;
+      gu.speech.s.position.set(gu.g.position.x,gu.seat?2.15:2.5,gu.g.position.z);
+      if(gu.speech.t<=0 || !on){ scene.remove(gu.speech.s); gu.speech=null; } }
+    if(!on){ if(gu.seat) standUp(gu); return; }
+    gu.tag.position.set(gu.g.position.x,gu.seat?1.8:2.12,gu.g.position.z);
+    if(gu.idle>0){ gu.idle-=dt;
+      if(!gu.seat){ gu.lL.rotation.x*=0.9; gu.lR.rotation.x*=0.9;
+        gu.aL.rotation.x*=0.9; gu.aR.rotation.x*=0.9; }
+      /* a standing guest notices you when you come close */
+      gu.greetCd=(gu.greetCd||0)-dt;
+      if(!gu.seat && gu.greetCd<=0 && state.started){
+        const pdx=avatar.position.x-gu.g.position.x, pdz=avatar.position.z-gu.g.position.z;
+        if(Math.hypot(pdx,pdz)<1.8){
+          gu.g.rotation.y=Math.atan2(pdx,pdz);
+          gu.greetCd=22;
+          if(Math.random()<0.5)
+            speakText(gu,(DB&&DB.guestName)?("Good evening, "+DB.guestName+"."):"Good evening.");
+        }
+      }
+      return; }
+    if(gu.seat) standUp(gu);
+    if(!gu.tgt){ const pts=guestTargets();
+      gu.tgt=pts[Math.floor(Math.random()*pts.length)];
+      gu.lastD=1e9; gu.stall=0; return; }
+    if(gu.tgt.sit && gu.tgt.sit.occ){ gu.tgt=null; return; }
+    const dx=gu.tgt.x-gu.g.position.x, dz=gu.tgt.z-gu.g.position.z, d=Math.hypot(dx,dz);
+    if(d<(gu.tgt.sit?1.35:0.5)){
+      if(gu.tgt.sit){ sitDown(gu,gu.tgt.sit); gu.idle=12+Math.random()*10; }
+      else{
+        if(gu.tgt.fx!=null) gu.g.rotation.y=Math.atan2(gu.tgt.fx,gu.tgt.fz);
+        if(gu.tgt.say && Math.random()<0.45)
+          speakText(gu,gu.tgt.say[Math.floor(Math.random()*gu.tgt.say.length)]);
+        gu.idle=5+Math.random()*7;
+      }
+      gu.tgt=null; return;
+    }
+    if(d>gu.lastD-0.004){ gu.stall+=dt; if(gu.stall>1.4){ gu.tgt=null; gu.idle=1; return; } }
+    else gu.stall=0;
+    gu.lastD=d;
+    const sp=1.35*dt;
+    let nx=gu.g.position.x+dx/d*sp, nz=gu.g.position.z+dz/d*sp;
+    [nx,nz]=pushOut(nx,nz);
+    nx=Math.max(-ROOM.x+0.6,Math.min(ROOM.x-0.6,nx));
+    nz=Math.max(-ROOM.z+0.6,Math.min(ROOM.z-0.6,nz));
+    gu.g.position.set(nx,0,nz);
+    gu.g.rotation.y=Math.atan2(dx,dz);
+    gu.phase+=dt*7;
+    const sw=Math.sin(gu.phase)*0.45;
+    gu.lL.rotation.x=sw; gu.lR.rotation.x=-sw;
+    gu.aL.rotation.x=-sw*0.7; gu.aR.rotation.x=sw*0.7;
+  });
+  /* quiet lounge chatter between idle guests */
+  chatTimer-=dt;
+  if(on && chatTimer<=0){
+    chatTimer=11+Math.random()*11;
+    for(let a2=0;a2<guests.length;a2++) for(let b2=a2+1;b2<guests.length;b2++){
+      const A=guests[a2], B=guests[b2];
+      if(A.idle>0 && B.idle>0 &&
+        Math.hypot(A.g.position.x-B.g.position.x,A.g.position.z-B.g.position.z)<4.2){
+        const dl=GUEST_DIALOG[Math.floor(Math.random()*GUEST_DIALOG.length)];
+        speakText(A,dl[0]);
+        setTimeout(()=>speakText(B,dl[1]),1800);
+        return;
+      } }
+  }
+}
+/* future multiuser hook: read-only presence snapshot */
+/* Honest note: everything below is LOCAL simulation \u2014 no one else can see this room.
+   Avatar identity language: parchment tag = simulated visitor (brass chest badge),
+   brass tag = the local user, silver tag = reserved for future REAL remote visitors
+   (type:"remote"), which do not exist yet. A future networked build can replace
+   guestTargets/updateGuests with remote frames and reuse the same shapes. */
+window.ArtifactRoom={ presence:{
+  guests:()=>guests.map(g=>({type:"sim",name:g.name,x:g.g.position.x,z:g.g.position.z,
+    state:g.seat?"sitting":(g.idle>0?"viewing":"walking")})),
+  player:()=>({type:"local",name:(DB&&DB.guestName)||"You",
+    color:(DB&&DB.playerColor)||"#6b5a42",
+    x:avatar.position.x,z:avatar.position.z})
+}};
+
+/* ---------- V3: display vitrines ---------- */
+const plinthGroup=new THREE.Group(); scene.add(plinthGroup);
+let plinthSpins=[], plinthHalos=[];
+addCollider(-4.4,2.4,0.5); addCollider(4.4,2.4,0.5);
+function buildPlinths(){
+  plinthGroup.children.slice().forEach(c=>plinthGroup.remove(c));
+  plinthSpins=[]; plinthHalos=[];
+  itemInteract=itemInteract.filter(it=>{
+    if(it.anchorIdx==="plinth"){ if(it.label) scene.remove(it.label); return false; } return true; });
+  const sorted=DB.collections.filter(c=>c.items.length>0)
+    .slice().sort((a,b)=>b.items.length-a.items.length);
+  const all=[]; DB.collections.forEach(c2=>c2.items.forEach(it2=>all.push({col:c2,item:it2})));
+  const pr2=mulberry32(dayKey());
+  const daily=all.length?all[Math.floor(pr2()*all.length)]:null;
+  const show=[
+    sorted[0]?{col:sorted[0],item:sorted[0].items[0],plq:sorted[0].name.toUpperCase()}:null,
+    daily?{col:daily.col,item:daily.item,plq:"TONIGHT'S PICK"}:null
+  ];
+  const spots=[{x:-4.4,z:2.4},{x:4.4,z:2.4}];
+  spots.forEach((sp2,i)=>{
+    const ped=box(0.6,1.0,0.6,M.woodDark); ped.position.set(sp2.x,0.5,sp2.z); plinthGroup.add(ped);
+    const top=box(0.64,0.04,0.64,M.brass); top.position.set(sp2.x,1.02,sp2.z); plinthGroup.add(top);
+    const col=show[i]&&show[i].col;
+    if(col){
+      const plq=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.11),
+        new THREE.MeshStandardMaterial({map:plaqueTexture(show[i].plq),roughness:.4,metalness:.5}));
+      plq.position.set(sp2.x,0.72,sp2.z+0.305); plinthGroup.add(plq);
+      const item=show[i].item;
+      const {group,main}=makeItemMesh(item,"book");
+      group.position.set(sp2.x,1.06,sp2.z); group.scale.set(1.05,1.05,1.05);
+      plinthGroup.add(group); plinthSpins.push(group);
+      main.userData.itemId=item.id;
+      const rec={mesh:main,itemId:item.id,colId:col.id,anchorIdx:"plinth",
+        label:labelSprite(item.title),labelY:0.95};
+      scene.add(rec.label); itemInteract.push(rec);
+    } else {
+      const p=propCandle(Math.random); p.position.set(sp2.x,1.04,sp2.z); plinthGroup.add(p);
+    }
+    const glass=box(0.56,0.66,0.56,new THREE.MeshStandardMaterial({color:0xcfe0da,
+      transparent:true,opacity:0.13,roughness:0.05,metalness:0,depthWrite:false}));
+    glass.position.set(sp2.x,1.38,sp2.z); plinthGroup.add(glass);
+    const beam=new THREE.Mesh(new THREE.ConeGeometry(0.55,1.5,12,1,true),
+      new THREE.MeshBasicMaterial({color:0xffdfae,transparent:true,opacity:0.07,
+        blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    beam.position.set(sp2.x,2.15,sp2.z); plinthGroup.add(beam);
+    const halo=new THREE.Mesh(new THREE.CircleGeometry(0.5,20),
+      new THREE.MeshBasicMaterial({color:0xffca7a,transparent:true,opacity:0.1,
+        blending:THREE.AdditiveBlending,depthWrite:false}));
+    halo.rotation.x=-Math.PI/2; halo.position.set(sp2.x,1.045,sp2.z);
+    plinthGroup.add(halo); plinthHalos.push(halo);
+  });
+}
+
+/* ---------- V4.0: THE CONSTELLATION ----------
+   Every artifact in the library rises and becomes a star; collections
+   form constellations, joined by faint gold lines. Purely additive:
+   toggling never touches the shelf data or any existing system. */
+const CONST={on:false,closing:false,stars:[],lines:[],labels:[],expT:1.18};
+const starTex=canvasTex(64,64,(g)=>{
+  const rg=g.createRadialGradient(32,32,1,32,32,30);
+  rg.addColorStop(0,"rgba(255,244,214,1)");
+  rg.addColorStop(0.35,"rgba(255,222,150,.55)");
+  rg.addColorStop(1,"rgba(255,200,110,0)");
+  g.fillStyle=rg; g.fillRect(0,0,64,64);
+});
+function constLayout(){
+  const per=[]; const cols=DB.collections.filter(c=>c.items.length);
+  const C=new THREE.Vector3(0,3.45,-1.0);
+  cols.forEach((c,ci)=>{
+    const ang=ci/Math.max(cols.length,1)*Math.PI*2+0.6;
+    const cc=new THREE.Vector3(
+      C.x+Math.cos(ang)*2.4,
+      C.y+Math.sin(ang*2.3)*0.45,
+      C.z+Math.sin(ang)*1.7);
+    c.items.forEach((it,ii)=>{
+      const ga=ii*2.399963, r=0.22+0.17*Math.sqrt(ii);
+      per.push({item:it,col:c,cc,ci,
+        pos:new THREE.Vector3(
+          cc.x+Math.cos(ga)*r,
+          cc.y+((ii%3)-1)*0.26+Math.sin(ga)*r*0.35,
+          cc.z+Math.sin(ga)*r*0.65)});
+    });
+  });
+  return {per,cols};
+}
+function starOrigin(entry){
+  const rec=itemInteract.find(it2=>it2.itemId===entry.item.id);
+  if(rec){ const v=new THREE.Vector3(); rec.mesh.getWorldPosition(v); return v; }
+  const a=ANCHORS[entry.col.anchor];
+  return new THREE.Vector3(a.approach.x,1.6,a.approach.z);
+}
+function setConstellation(on){
+  if(on===CONST.on && !CONST.closing) return;
+  if(on){
+    if(CONST.stars.length) constCleanup();
+    CONST.on=true; CONST.closing=false; CONST.expT=0.52;
+    const {per,cols}=constLayout();
+    per.forEach((e2,i)=>{
+      const m=new THREE.Sprite(new THREE.SpriteMaterial({map:starTex,
+        color:e2.item.color||0xffdf9a,transparent:true,opacity:0,
+        blending:THREE.AdditiveBlending,depthTest:false}));
+      m.scale.set(0.34,0.34,1); m.renderOrder=20;
+      const o=starOrigin(e2);
+      m.position.copy(o);
+      m.userData.starId=e2.item.id;
+      scene.add(m);
+      CONST.stars.push({m,o,tgt:e2.pos,p:0,delay:i*0.045,col:e2.col});
+    });
+    /* constellation lines per collection */
+    const lm=new THREE.LineBasicMaterial({color:0xc9a86a,transparent:true,opacity:0});
+    cols.forEach(c=>{
+      const pts=CONST.stars.filter(st2=>st2.col===c).map(st2=>st2.tgt);
+      if(pts.length<2) return;
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      const ln=new THREE.Line(geo,lm.clone()); ln.renderOrder=19;
+      scene.add(ln); CONST.lines.push(ln);
+    });
+    /* cluster titles */
+    const seen=new Set();
+    CONST.stars.forEach(st2=>{
+      if(seen.has(st2.col.id)) return; seen.add(st2.col.id);
+      const lb=labelSprite(st2.col.name); lb.visible=true;
+      lb.position.set(st2.tgt.x,0,st2.tgt.z); lb.center.set(0.5,0);
+      lb.material.opacity=0;
+      lb.position.set(st2.tgt.x,st2.tgt.y+0.85,st2.tgt.z);
+      scene.add(lb); CONST.labels.push(lb);
+    });
+    toast("The library becomes a constellation. Click a star \u2014 or \u2726 to descend.");
+    if(DB.visitors!==false && guests.length && Math.random()<0.8){
+      const g0=guests[Math.floor(Math.random()*guests.length)];
+      setTimeout(()=>speakText(g0,"Oh \u2014 look up."),900);
+    }
+  } else {
+    CONST.closing=true; CONST.expT=1.18;
+  }
+}
+function constCleanup(){
+  CONST.stars.forEach(st2=>scene.remove(st2.m));
+  CONST.lines.forEach(l2=>scene.remove(l2));
+  CONST.labels.forEach(l2=>scene.remove(l2));
+  CONST.stars=[]; CONST.lines=[]; CONST.labels=[];
+  CONST.on=false; CONST.closing=false;
+}
+function updateConstellation(dt,t){
+  if(!CONST.stars.length) return;
+  let anyOpen=false;
+  const dir=CONST.closing?-1:1;
+  CONST.stars.forEach(st2=>{
+    if(!CONST.closing && t<st2.delay+0.0001 && st2.p===0){} /* stagger via delay */
+    st2.delay-=CONST.closing?0:dt;
+    if(st2.delay<=0 || CONST.closing) st2.p=Math.max(0,Math.min(1,st2.p+dir*dt/0.9));
+    const e3=st2.p<0.5?2*st2.p*st2.p:1-Math.pow(-2*st2.p+2,2)/2;
+    st2.m.position.lerpVectors(st2.o,st2.tgt,e3);
+    st2.m.material.opacity=Math.min(1,st2.p*1.6);
+    const tw=0.3+0.1*Math.sin(t*3+st2.tgt.x*7+st2.tgt.y*5);
+    st2.m.scale.set(tw,tw,1);
+    if(st2.p>0) anyOpen=true;
+  });
+  const lo=CONST.closing?0:0.22;
+  CONST.lines.forEach(l2=>{ l2.material.opacity+=(lo-l2.material.opacity)*Math.min(1,dt*2); });
+  const bo=CONST.closing?0:0.95;
+  CONST.labels.forEach(l2=>{ l2.material.opacity+=(bo-l2.material.opacity)*Math.min(1,dt*2); });
+  if(CONST.closing && !anyOpen) constCleanup();
+}
+
 function rebuildAll(){
+  addGhostMats.length=0;
   ANCHORS.forEach(a=>{
     const col=colByAnchor(a.idx);
     a.setVisible(!!col || !a.extra);
-    if(a.plaqueMesh) setPlaqueText(a.plaqueMesh, col?col.name.toUpperCase():"· · ·");
+    if(a.plaqueMesh) setPlaqueText(a.plaqueMesh, col?col.name.toUpperCase():"AVAILABLE SHELF");
     rebuildAnchorBooks(a);
   });
+  buildPlinths();
   /* gadgets follow their seed items */
   Object.keys(gadgets).forEach(k=>{
     const hit=itemBySeedKey(k), gd=gadgets[k];
@@ -1140,12 +1661,16 @@ function rebuildAll(){
 const FRAMES=[
   { id:"f1", pos:[ROOM.x-0.2,2.7,-3.5], ry:-Math.PI/2, zone:{x:11.9,z:-2.6,r:2.4}, approach:{x:11.6,z:-2.6}, face:{x:1,z:0}, name:"Frame I — by the desk" },
   { id:"f2", pos:[-4.6,2.9,-ROOM.z+0.22], ry:0, zone:{x:-4.6,z:-7.3,r:2.4}, approach:{x:-4.6,z:-6.9}, face:{x:0,z:-1}, name:"Frame II — left of the fire" },
-  { id:"f3", pos:[4.2,2.9,-ROOM.z+0.22], ry:0, zone:{x:4.2,z:-7.3,r:2.4}, approach:{x:4.2,z:-6.9}, face:{x:0,z:-1}, name:"Frame III — right of the fire" }
+  { id:"f3", pos:[4.2,2.9,-ROOM.z+0.22], ry:0, zone:{x:4.2,z:-7.3,r:2.4}, approach:{x:4.2,z:-6.9}, face:{x:0,z:-1}, name:"Frame III — right of the fire" },
+  { id:"f4", pos:[ROOM.x-0.2,2.6,-0.9], ry:-Math.PI/2, zone:{x:11.8,z:-0.9,r:1.9}, approach:{x:11.3,z:-0.9}, face:{x:1,z:0}, name:"Frame IV — the east gallery" },
+  { id:"f5", pos:[-4.6,4.45,-ROOM.z+0.22], ry:0, zone:{x:-4.6,z:-7.2,r:0.01}, approach:{x:-4.6,z:-6.9}, face:{x:0,z:-1}, name:"Frame V — the high salon, left" },
+  { id:"f6", pos:[4.2,4.45,-ROOM.z+0.22], ry:0, zone:{x:4.2,z:-7.2,r:0.01}, approach:{x:4.2,z:-6.9}, face:{x:0,z:-1}, name:"Frame VI — the high salon, right" }
 ];
 function placeholderArt(hue){
+  const safe=(typeof hue==="string"&&hue)?hue:"#3a3226";
   return canvasTex(256,320,(g)=>{
     const lg=g.createLinearGradient(0,0,0,320);
-    lg.addColorStop(0,hue); lg.addColorStop(1,"#0d0a07");
+    lg.addColorStop(0,safe); lg.addColorStop(1,"#0d0a07");
     g.fillStyle=lg; g.fillRect(0,0,256,320);
     g.fillStyle="rgba(220,190,140,.22)";
     g.beginPath(); g.ellipse(128,130,52,64,0,0,Math.PI*2); g.fill();
@@ -1155,7 +1680,7 @@ function placeholderArt(hue){
     g.fillText("your photograph",128,178);
   });
 }
-const frameHues=["#3a2a4a","#2a3a30","#4a3020"];
+const frameHues=["#3a2a4a","#2a3a30","#4a3020","#2a3040","#463424","#30402e"];
 FRAMES.forEach((f,i)=>{
   const g=new THREE.Group();
   put(box(1.18,1.48,0.06,M.woodDark),g,0,0,0);
@@ -1347,49 +1872,274 @@ curtain(7.7,-1); curtain(7.7,1); curtainRod(7.7);
   new THREE.MeshStandardMaterial({map:rugTex,roughness:.95,color:0xb2bcae}));
   r2.rotation.x=-Math.PI/2; r2.position.set(ROOM.x-2.4,0.014,1.6); scene.add(r2); })();
 
-/* ---------- V2.6 warmth details ---------- */
-function smallPainting(x,y,z,ry,w,h,tones){
+/* ---------- V3.4 living decor ---------- */
+/* the library cat, asleep by the hearth */
+let catBody=null, catHit=null, CATG=null;
+(()=>{ const g=new THREE.Group();
+  const fur=new THREE.MeshStandardMaterial({color:0x7a6248,roughness:.9});
+  const furD=new THREE.MeshStandardMaterial({color:0x5c4834,roughness:.9});
+  catBody=new THREE.Mesh(new THREE.SphereGeometry(0.26,14,12),fur);
+  catBody.scale.set(1.15,0.55,0.8); catBody.position.y=0.14; g.add(catBody);
+  catHit=catBody;
+  catBody.userData.cat=1;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.13,12,10),fur);
+  head.position.set(0.24,0.16,0.1); g.add(head);
+  for(const ex of [-0.05,0.05]){
+    const ear=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.07,6),furD);
+    ear.position.set(0.26+ex,0.27,0.1); g.add(ear); }
+  const t1=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8),furD);
+  t1.position.set(-0.28,0.08,0.12); g.add(t1);
+  const t2=t1.clone(); t2.position.set(-0.34,0.07,0.02); g.add(t2);
+  const t3=t1.clone(); t3.position.set(-0.3,0.07,-0.08); g.add(t3);
+  /* the cat chooses a different spot each day */
+  const CSPOTS=[[3.1,0,-6.6,0.6],[-10.45,0.66,6.75,2.5],[-4.8,0,7.4,-0.4]];
+  const cs=CSPOTS[dayKey()%3];
+  g.position.set(cs[0],cs[1],cs[2]); g.rotation.y=cs[3];
+  CATG=g; scene.add(g);
+})();
+function dayKey(){ const d=new Date();
+  return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+/* potted plants */
+function pottedPlant(x,z,sc){
   const g=new THREE.Group();
-  const frame=box(w+0.16,h+0.16,0.07,M.woodDark); g.add(frame);
-  const inner=box(w+0.06,h+0.06,0.075,M.brass); inner.position.z=0.015; g.add(inner);
-  const canvas=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({
-    color:tones[0],roughness:.95,emissive:tones[1],emissiveIntensity:.06}));
-  canvas.position.z=0.06; g.add(canvas);
-  const horizon=box(w*0.72,0.035,0.012,new THREE.MeshStandardMaterial({color:tones[2],roughness:.9}));
-  horizon.position.set(0,-h*0.08,0.07); g.add(horizon);
-  g.position.set(x,y,z); g.rotation.y=ry; scene.add(g);
-}
-smallPainting(-3.3,3.15,-ROOM.z+0.24,0,0.8,1.0,[0x59614f,0x273223,0xc49755]);
-smallPainting(ROOM.x-0.24,3.05,-0.4,-Math.PI/2,0.9,0.72,[0x514458,0x2b2032,0xb98852]);
-function pottedPlant(x,z,s){
-  const g=new THREE.Group();
-  const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.2*s,0.28*s,0.42*s,10),
-    new THREE.MeshStandardMaterial({color:0x6b3d27,roughness:.9}));
-  pot.position.y=0.21*s; g.add(pot);
-  const soil=new THREE.Mesh(new THREE.CylinderGeometry(0.19*s,0.19*s,0.025*s,10),M.woodDark);
-  soil.position.y=0.43*s; g.add(soil);
-  const leafMat=new THREE.MeshStandardMaterial({color:0x35523a,roughness:.86,side:THREE.DoubleSide});
-  for(let i=0;i<7;i++){
-    const leaf=new THREE.Mesh(new THREE.SphereGeometry(0.18*s,7,5),leafMat);
-    const a=i/7*Math.PI*2; leaf.scale.set(0.52,1.7,0.32);
-    leaf.position.set(Math.cos(a)*0.16*s,0.7*s+(i%2)*0.13*s,Math.sin(a)*0.16*s);
-    leaf.rotation.z=Math.cos(a)*0.55; leaf.rotation.x=Math.sin(a)*0.45; g.add(leaf);
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.16,0.3,12),
+    new THREE.MeshStandardMaterial({color:0x8a5238,roughness:.85}));
+  pot.position.y=0.15; g.add(pot);
+  const soil=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.03,12),
+    new THREE.MeshStandardMaterial({color:0x241a10,roughness:1}));
+  soil.position.y=0.3; g.add(soil);
+  const g1=new THREE.MeshStandardMaterial({color:0x2e4a2e,roughness:.85});
+  const g2=new THREE.MeshStandardMaterial({color:0x3e5c34,roughness:.85});
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2+0.4;
+    const leaf=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.75+((i*37)%23)/40,6),(i%3)?g1:g2);
+    leaf.position.set(Math.cos(a)*0.07,0.66,Math.sin(a)*0.07);
+    leaf.rotation.z=Math.cos(a)*0.5; leaf.rotation.x=-Math.sin(a)*0.5;
+    g.add(leaf);
   }
-  g.position.set(x,0,z); scene.add(g);
+  g.scale.set(sc,sc,sc);
+  g.position.set(x,0,z); scene.add(g); addCollider(x,z,0.35);
 }
-pottedPlant(5.0,-6.8,0.9); pottedPlant(-4.0,6.9,0.78); pottedPlant(9.3,6.7,0.72);
-function wallSconce(x,y,z,ry){
+pottedPlant(-3.4,8.3,1.0); pottedPlant(5.9,8.3,1.1); pottedPlant(12.0,-2.6,0.9);
+/* brass candle sconces */
+function sconce(x,z,ry){
   const g=new THREE.Group();
-  const plate=box(0.18,0.32,0.06,M.brass); g.add(plate);
-  const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.22,7),M.brass);
-  arm.rotation.x=Math.PI/2; arm.position.set(0,-0.02,0.13); g.add(arm);
-  const shade=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.16,0.22,10,1,true),
-    new THREE.MeshStandardMaterial({color:0xb1783d,roughness:.65,side:THREE.DoubleSide,emissive:0x6b3512,emissiveIntensity:.65}));
-  shade.position.set(0,-0.02,0.27); shade.rotation.x=Math.PI/2; g.add(shade);
-  g.position.set(x,y,z); g.rotation.y=ry; scene.add(g);
-  const light=new THREE.PointLight(0xffc982,0.38,4.8,2); light.position.set(x,y,z); scene.add(light);
+  put(box(0.16,0.3,0.03,M.woodDark),g,0,0,0);
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.2,6),M.brass);
+  arm.rotation.x=Math.PI/2.4; arm.position.set(0,-0.03,0.09); g.add(arm);
+  const cup=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.03,0.045,8),M.brass);
+  cup.position.set(0,0.05,0.17); g.add(cup);
+  const cnd=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.02,0.13,6),M.paper);
+  cnd.position.set(0,0.14,0.17); g.add(cnd);
+  const fl=new THREE.Mesh(new THREE.SphereGeometry(0.022,6,6),
+    new THREE.MeshBasicMaterial({color:0xffdf9a}));
+  fl.position.set(0,0.23,0.17); g.add(fl);
+  const halo=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5),
+    new THREE.MeshBasicMaterial({color:0xffca7a,transparent:true,opacity:0.10,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+  halo.position.set(0,0.12,0.05); g.add(halo);
+  g.position.set(x,3.55,z); g.rotation.y=ry; scene.add(g);
 }
-wallSconce(-5.7,3.25,-ROOM.z+0.28,0); wallSconce(5.7,3.25,-ROOM.z+0.28,0);
+sconce(ROOM.x-0.46,-2.9,-Math.PI/2); sconce(ROOM.x-0.46,7.6,-Math.PI/2);
+sconce(5.5,ROOM.z-0.46,Math.PI); sconce(-9.6,ROOM.z-0.46,Math.PI);
+
+/* ---------- V3.5: the notice board ---------- */
+const BOARD={approach:{x:11.2,z:-2.2},face:{x:1,z:0},zone:{x:11.7,z:-2.2,r:1.7}};
+(()=>{ const g=new THREE.Group();
+  const fr=box(1.0,1.3,0.05,M.woodDark); g.add(fr);
+  const cork=new THREE.Mesh(new THREE.PlaneGeometry(0.88,1.18),
+    new THREE.MeshStandardMaterial({color:0x6b5138,roughness:.95}));
+  cork.position.z=0.03; g.add(cork);
+  fr.userData.board=1; cork.userData.board=1;
+  BOARD.hits=[fr,cork];
+  const pr=mulberry32(77);
+  for(let i=0;i<5;i++){
+    const note=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.24),
+      new THREE.MeshStandardMaterial({color:0xe9dcbd,roughness:.9}));
+    note.position.set(-0.28+((i*53)%57)/100*0.56,0.4-i*0.2,0.035);
+    note.rotation.z=(pr()-0.5)*0.25; g.add(note);
+    const pin=new THREE.Mesh(new THREE.SphereGeometry(0.014,6,6),M.brass);
+    pin.position.set(note.position.x,note.position.y+0.1,0.045); g.add(pin);
+  }
+  const ttl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.13),
+    new THREE.MeshStandardMaterial({map:plaqueTexture("NOTICES"),roughness:.4,metalness:.5}));
+  ttl.position.set(0,0.78,0.04); g.add(ttl);
+  g.position.set(ROOM.x-0.34,2.35,-2.2); g.rotation.y=-Math.PI/2;
+  scene.add(g);
+})();
+
+/* ---------- V3.7: architectural trim ---------- */
+(()=>{ const railM=M.woodDark;
+  function rail(len,x,z,ry,y,h){
+    const m=box(len,h,0.05,railM); m.position.set(x,y,z); m.rotation.y=ry; scene.add(m); }
+  /* chair rail */
+  rail(ROOM.x*2, 0,-ROOM.z+0.05, 0,       1.14,0.07);
+  rail(ROOM.x*2, 0, ROOM.z-0.05, 0,       1.14,0.07);
+  rail(ROOM.z*2,-ROOM.x+0.05, 0, Math.PI/2,1.14,0.07);
+  rail(ROOM.z*2, ROOM.x-0.05, 0, Math.PI/2,1.14,0.07);
+  /* crown moulding */
+  rail(ROOM.x*2, 0,-ROOM.z+0.07, 0,       ROOM.h-0.14,0.14);
+  rail(ROOM.x*2, 0, ROOM.z-0.07, 0,       ROOM.h-0.14,0.14);
+  rail(ROOM.z*2,-ROOM.x+0.07, 0, Math.PI/2,ROOM.h-0.14,0.14);
+  rail(ROOM.z*2, ROOM.x-0.07, 0, Math.PI/2,ROOM.h-0.14,0.14);
+})();
+
+/* ---------- V3.7: the grandfather clock ---------- */
+const CLOCK={};
+(()=>{ const g=new THREE.Group();
+  const body=box(0.52,2.5,0.34,M.woodDark); body.position.y=1.25; g.add(body);
+  const crownB=box(0.6,0.12,0.4,M.woodMid); crownB.position.y=2.54; g.add(crownB);
+  const baseB=box(0.6,0.16,0.4,M.woodMid); baseB.position.y=0.08; g.add(baseB);
+  const face=new THREE.Mesh(new THREE.CircleGeometry(0.17,22),M.paper);
+  face.position.set(0,2.12,0.175); g.add(face);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.17,0.016,8,22),M.brass);
+  ring.position.set(0,2.12,0.176); g.add(ring);
+  const hH=box(0.02,0.09,0.006,M.iron); hH.position.set(0,2.15,0.18); hH.rotation.z=0.8; g.add(hH);
+  const hM=box(0.014,0.13,0.006,M.iron); hM.position.set(0,2.15,0.181); hM.rotation.z=-0.5; g.add(hM);
+  const win=new THREE.Mesh(new THREE.PlaneGeometry(0.3,1.1),
+    new THREE.MeshStandardMaterial({color:0x1a1208,roughness:.3,metalness:.1}));
+  win.position.set(0,1.15,0.172); g.add(win);
+  CLOCK.pend=new THREE.Group(); CLOCK.pend.position.set(0,1.72,0.18);
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.85,6),M.brass);
+  rod.position.y=-0.42; CLOCK.pend.add(rod);
+  const bob=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.02,14),M.brass);
+  bob.rotation.x=Math.PI/2; bob.position.y=-0.82; CLOCK.pend.add(bob);
+  g.add(CLOCK.pend);
+  body.userData.clock=1; face.userData.clock=1;
+  CLOCK.hits=[body,face];
+  g.position.set(ROOM.x-0.72,0,7.7); g.rotation.y=-Math.PI/2;
+  scene.add(g); addCollider(ROOM.x-0.72,7.7,0.5);
+})();
+
+/* ---------- V3.7: the owl upon the great shelves ---------- */
+const OWL={blink:0,next:3};
+(()=>{ const g=new THREE.Group();
+  const fe=new THREE.MeshStandardMaterial({color:0x6b5a44,roughness:.9});
+  const feD=new THREE.MeshStandardMaterial({color:0x4c3f2e,roughness:.9});
+  const body=new THREE.Mesh(new THREE.SphereGeometry(0.16,12,10),fe);
+  body.scale.set(1,1.25,0.95); body.position.y=0.2; g.add(body);
+  OWL.head=new THREE.Group(); OWL.head.position.y=0.42; g.add(OWL.head);
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,10),fe); OWL.head.add(hd);
+  OWL.eyes=[];
+  for(const ex of [-0.05,0.05]){
+    const eye=new THREE.Mesh(new THREE.CircleGeometry(0.032,10),
+      new THREE.MeshBasicMaterial({color:0xffc84a}));
+    eye.position.set(ex,0.02,0.105); OWL.head.add(eye); OWL.eyes.push(eye);
+    const pu=new THREE.Mesh(new THREE.CircleGeometry(0.013,8),
+      new THREE.MeshBasicMaterial({color:0x140e07}));
+    pu.position.set(ex,0.02,0.107); OWL.head.add(pu); OWL.eyes.push(pu);
+    const tuft=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.08,6),feD);
+    tuft.position.set(ex*1.8,0.11,0.02); tuft.rotation.z=-ex*4; OWL.head.add(tuft);
+  }
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.05,6),
+    new THREE.MeshStandardMaterial({color:0x8a5a17,roughness:.6}));
+  beak.rotation.x=Math.PI/2.4; beak.position.set(0,-0.03,0.115); OWL.head.add(beak);
+  body.userData.owl=1; hd.userData.owl=1;
+  OWL.hits=[body,hd];
+  g.position.set(-ROOM.x+0.62,3.82,-1.5); g.rotation.y=Math.PI/2;
+  OWL.g=g; scene.add(g);
+})();
+
+/* ---------- V3.8: the visitors' ledger ---------- */
+const LEDG={};
+(()=>{ const g=new THREE.Group();
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.08,1.05,8),M.woodDark);
+  post.position.y=0.52; g.add(post);
+  const foot=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.24,0.05,10),M.woodDark);
+  foot.position.y=0.03; g.add(foot);
+  const desk=box(0.5,0.04,0.38,M.woodMid);
+  desk.rotation.x=-0.42; desk.position.set(0,1.1,0.03); g.add(desk);
+  const pgL=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.3),M.paper);
+  pgL.rotation.x=-0.42+Math.PI/2*0; pgL.rotation.x=-0.42; pgL.rotation.z=0;
+  pgL.position.set(-0.105,1.13,0.045); pgL.rotation.x=-0.42; g.add(pgL);
+  const pgR=pgL.clone(); pgR.position.x=0.105; g.add(pgR);
+  desk.userData.ledger=1; pgL.userData.ledger=1; pgR.userData.ledger=1;
+  LEDG.hits=[desk,pgL,pgR];
+  g.position.set(ROOM.x-0.85,0,-3.5); g.rotation.y=-Math.PI/2+0.15;
+  scene.add(g); addCollider(ROOM.x-0.85,-3.5,0.4);
+})();
+
+/* ---------- V3.6: the gramophone ---------- */
+const GRAM={hits:[]};
+(()=>{ const g=new THREE.Group();
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.07,0.66,8),M.woodDark);
+  leg.position.y=0.33; g.add(leg);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.045,14),M.woodMid);
+  top.position.y=0.68; g.add(top);
+  const base=box(0.3,0.15,0.3,M.woodDark); base.position.y=0.78; g.add(base);
+  const plate=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.02,14),M.iron);
+  plate.position.set(0.02,0.87,0.04); g.add(plate);
+  const horn=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.34,14,1,true),M.brass);
+  horn.rotation.x=-2.2; horn.position.set(-0.04,1.08,-0.1); g.add(horn);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.035,0.2,8),M.brass);
+  neck.rotation.x=-0.7; neck.position.set(-0.02,0.9,-0.08); g.add(neck);
+  const crank=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.14,6),M.brass);
+  crank.rotation.z=Math.PI/2; crank.position.set(0.2,0.8,0); g.add(crank);
+  horn.userData.gram=1; base.userData.gram=1; top.userData.gram=1;
+  GRAM.hits=[horn,base,top];
+  g.position.set(-3.4,0,-6.4); g.rotation.y=0.7; scene.add(g);
+  addCollider(-3.4,-6.4,0.45);
+})();
+/* ---------- V3.6: the reading nook ---------- */
+(()=>{ const wc=armchair();
+  wc.scale.set(1.08,1.15,1.08);
+  wc.position.set(-10.5,0,6.8); wc.rotation.y=2.35; scene.add(wc);
+  addCollider(-10.5,6.8,0.6);
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,0.6,8),M.woodDark);
+  leg.position.set(-9.5,0.3,7.6); scene.add(leg);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.04,12),M.woodMid);
+  top.position.set(-9.5,0.62,7.6); scene.add(top);
+  const b1=box(0.26,0.05,0.2,new THREE.MeshStandardMaterial({color:0x4a2a1a,roughness:.8}));
+  b1.position.set(-9.55,0.665,7.58); b1.rotation.y=0.3; scene.add(b1);
+  const b2=box(0.22,0.05,0.18,new THREE.MeshStandardMaterial({color:0x2e3a2a,roughness:.8}));
+  b2.position.set(-9.5,0.715,7.62); b2.rotation.y=-0.2; scene.add(b2);
+  const cn=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.02,0.12,6),M.paper);
+  cn.position.set(-9.36,0.71,7.44); scene.add(cn);
+  const cf=new THREE.Mesh(new THREE.SphereGeometry(0.018,6,6),
+    new THREE.MeshBasicMaterial({color:0xffdf9a}));
+  cf.position.set(-9.36,0.79,7.44); scene.add(cf);
+  addCollider(-9.5,7.6,0.35);
+})();
+
+/* ---------- V3.8: the tea service ---------- */
+const TEA={};
+(()=>{ const g=new THREE.Group();
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,0.58,8),M.woodDark);
+  leg.position.y=0.29; g.add(leg);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.04,14),M.woodMid);
+  top.position.y=0.6; g.add(top);
+  const potM=new THREE.MeshStandardMaterial({color:0xcfc4ae,roughness:.35});
+  const pot=new THREE.Mesh(new THREE.SphereGeometry(0.09,12,10),potM);
+  pot.scale.y=0.85; pot.position.set(-0.02,0.7,0); g.add(pot);
+  const lid=new THREE.Mesh(new THREE.SphereGeometry(0.028,8,8),potM);
+  lid.position.set(-0.02,0.79,0); g.add(lid);
+  const spout=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.022,0.11,6),potM);
+  spout.rotation.z=-0.9; spout.position.set(0.09,0.73,0); g.add(spout);
+  for(const [cx,cz] of [[0.16,0.12],[-0.18,-0.1]]){
+    const cup=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.026,0.045,10),potM);
+    cup.position.set(cx,0.645,cz); g.add(cup); }
+  pot.userData.tea=1; top.userData.tea=1;
+  TEA.hits=[pot,top];
+  g.position.set(0,0,-5.15); scene.add(g);
+  addCollider(0,-5.15,0.42);
+  TEA.steam=[];
+  for(let i=0;i<2;i++){
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(0.05,0.05),
+      new THREE.MeshBasicMaterial({color:0xe8e0d0,transparent:true,opacity:0,
+        blending:THREE.AdditiveBlending,depthWrite:false}));
+    scene.add(m); TEA.steam.push({m,t:i*1.1});
+  }
+})();
+
+/* ---------- V3.5: hearth embers ---------- */
+const embers=[];
+(()=>{ for(let i=0;i<7;i++){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(0.05,0.05),
+    new THREE.MeshBasicMaterial({color:0xff9a3c,transparent:true,opacity:0,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(m);
+  embers.push({m,t:Math.random()*2.5,ox:(Math.random()-0.5)*0.7,oz:(Math.random()-0.5)*0.2});
+} })();
 
 /* ---------- lighting ---------- */
 scene.add(new THREE.AmbientLight(0x3e3020,0.62));
@@ -1490,17 +2240,20 @@ scene.add(avatar);
 
 /* ---------- state / input ---------- */
 const state={
-  yaw:0, yawTarget:null, pitch:-0.16, keys:{}, walkPhase:0, speed:3.1,
+  yaw:0, yawTarget:null, pitch:-0.16, keys:{}, walkPhase:0, speed:3.1, camDist:5.0,
   started:false, nearestZone:null, walk:null
 };
 function anyOverlayOpen(){
-  return ["cardWrap","sheetWrap","formWrap","indexWrap","frameWrap","moveWrap"].some(id=>$(id).style.display==="flex")
+  return ["cardWrap","sheetWrap","formWrap","indexWrap","frameWrap","moveWrap","claimWrap","boardWrap","ledgerWrap"].some(id=>$(id).style.display==="flex")
     || welcome.style.display!=="none";
 }
 addEventListener('keydown',e=>{
   state.keys[e.code]=true;
-  if(e.code==="Escape"){ closeTop(); return; }
+  if(e.code==="Escape"){
+    if(!anyOverlayOpen() && CONST.on && !CONST.closing){ setConstellation(false); return; }
+    closeTop(); return; }
   if(anyOverlayOpen()) return;
+  if(e.code==="KeyC" && state.started){ setConstellation(!(CONST.on&&!CONST.closing)); }
   if(e.code==="KeyE" && state.nearestZone){ approachZone(state.nearestZone); }
   if((e.code==="KeyR"||e.code==="Enter") && state.nearestZone){ activateZone(state.nearestZone); }
 });
@@ -1560,16 +2313,57 @@ function pickTargets(){
   itemInteract.forEach(it=>t.push(it.mesh));
   Object.values(gadgets).forEach(g=>{ if(g.mesh.visible) t.push(g.mesh); });
   FRAMES.forEach(f=>t.push(f.plane));
+  guests.forEach(gu=>{ if(gu.g.visible) t.push(gu.hit); });
+  if(catHit) t.push(catHit);
+  if(BOARD.hits) BOARD.hits.forEach(h=>t.push(h));
+  if(GRAM.hits) GRAM.hits.forEach(h=>t.push(h));
+  if(OWL.hits) OWL.hits.forEach(h=>t.push(h));
+  if(CLOCK.hits) CLOCK.hits.forEach(h=>t.push(h));
+  if(TEA.hits) TEA.hits.forEach(h=>t.push(h));
+  if(LEDG.hits) LEDG.hits.forEach(h=>t.push(h));
   return t;
 }
 function tryPick(x,y){
+  if(CONST.on && !CONST.closing){
+    const sh=castAt(x,y,CONST.stars.map(st2=>st2.m));
+    if(sh.length){ const id2=sh[0].object.userData.starId;
+      if(id2) openCard(id2); return; }
+  }
   let hits=castAt(x,y,pickTargets());
   if(hits.length){
     const o=hits[0].object;
+    if(o.userData.guestIdx!=null){ guestSpeak(o.userData.guestIdx); return; }
+    if(o.userData.cat){ toast("The library cat purrs softly."); return; }
+    if(o.userData.gram){
+      setMusic(!musicOn);
+      toast(musicOn?"The gramophone plays softly.":"The gramophone falls silent.");
+      return;
+    }
+    if(o.userData.owl){
+      OWL.blink=0.16;
+      toast("The owl blinks, slowly, and keeps watching.");
+      return;
+    }
+    if(o.userData.clock){
+      const dn=new Date();
+      toast("The clock reads "+String(dn.getHours()).padStart(2,"0")+":"+
+        String(dn.getMinutes()).padStart(2,"0")+".");
+      return;
+    }
+    if(o.userData.tea){ toast("Still warm. Someone is expected."); return; }
+    if(o.userData.ledger){ openLedger(); return; }
+    if(o.userData.board){
+      const d0=Math.hypot(BOARD.approach.x-avatar.position.x,BOARD.approach.z-avatar.position.z);
+      if(d0<3.4) execOpen({t:"board"});
+      else setWalk(BOARD.approach.x,BOARD.approach.z,{t:"board"},"Notice board");
+      return;
+    }
     o.getWorldPosition(_wp);
     const d=Math.hypot(_wp.x-avatar.position.x,_wp.z-avatar.position.z);
     let opener=null,label=null;
-    if(o.userData.itemId){ const f=findItem(o.userData.itemId);
+    if(o.userData.claimIdx!=null){ opener={t:"claim",idx:o.userData.claimIdx}; label="Available shelf"; }
+    else if(o.userData.addCol){ opener={t:"add",colId:o.userData.addCol}; label="+ Add artifact"; }
+    else if(o.userData.itemId){ const f=findItem(o.userData.itemId);
       if(f){ opener={t:"item",id:f.item.id}; label=f.item.title; } }
     else if(o.userData.gadget){ const hit=itemBySeedKey(o.userData.gadget);
       if(hit){ opener={t:"item",id:hit.item.id}; label=hit.item.title; } }
@@ -1580,14 +2374,15 @@ function tryPick(x,y){
     else setWalk(_wp.x,_wp.z,opener,label);
     return;
   }
-  /* whole-shelf pick volumes */
-  hits=castAt(x,y,ANCHORS.flatMap(a=>colByAnchor(a.idx)?a.pickboxes:[]));
+  /* whole-shelf pick volumes (incl. claimable available shelves) */
+  hits=castAt(x,y,ANCHORS.flatMap(a=>(colByAnchor(a.idx)||!a.extra)?a.pickboxes.concat([a.plaqueMesh]):[]));
   if(hits.length){
     const idx=hits[0].object.userData.anchorIdx, a=ANCHORS[idx], col=colByAnchor(idx);
     const d=Math.hypot(a.approach.x-avatar.position.x,a.approach.z-avatar.position.z);
-    const opener={t:"col",id:col.id};
+    const opener=col?{t:"col",id:col.id}:{t:"claim",idx:idx};
+    const lbl=col?col.name:"Available shelf";
     if(d<3.4) execOpen(opener);
-    else setWalk(a.approach.x,a.approach.z,opener,col.name);
+    else setWalk(a.approach.x,a.approach.z,opener,lbl);
     return;
   }
   /* floor → walk there */
@@ -1597,7 +2392,15 @@ function tryPick(x,y){
     if(Math.abs(p.x)<ROOM.x-0.5 && Math.abs(p.z)<ROOM.z-0.5) setWalk(p.x,p.z,null,null);
   }
 }
-let hoverBusy=false, hoverIdx=-1;
+let hoverBusy=false, hoverIdx=-1, hoverPlaque=null;
+function setHoverPlaque(p){
+  if(hoverPlaque===p) return;
+  if(hoverPlaque && hoverPlaque!==activePlaque && hoverPlaque.material)
+    hoverPlaque.material.emissiveIntensity=0;
+  hoverPlaque=p;
+  if(hoverPlaque && hoverPlaque!==activePlaque && hoverPlaque.material)
+    hoverPlaque.material.emissiveIntensity=0.4;
+}
 function hoverAt(x,y){
   if(hoverBusy||!state.started||anyOverlayOpen()) return;
   hoverBusy=true;
@@ -1606,11 +2409,13 @@ function hoverAt(x,y){
     let ni=-1;
     if(hits.length){
       const o=hits[0].object;
-      if(o.userData.itemId) ni=itemInteract.findIndex(it=>it.itemId===o.userData.itemId);
+      ni=itemInteract.findIndex(it=>it.mesh===o);
       stage.style.cursor="pointer";
+      setHoverPlaque(null);
     } else {
-      const hb=castAt(x,y,ANCHORS.flatMap(a=>colByAnchor(a.idx)?a.pickboxes:[]));
+      const hb=castAt(x,y,ANCHORS.flatMap(a=>(colByAnchor(a.idx)||!a.extra)?a.pickboxes.concat([a.plaqueMesh]):[]));
       stage.style.cursor=hb.length?"pointer":"default";
+      setHoverPlaque(hb.length?ANCHORS[hb[0].object.userData.anchorIdx].plaqueMesh:null);
     }
     if(ni!==hoverIdx){
       if(hoverIdx>=0 && itemInteract[hoverIdx]) itemInteract[hoverIdx].hover=false;
@@ -1642,23 +2447,34 @@ function execOpen(opener,facePos){
   if(opener.t==="item"){ const f=findItem(opener.id); if(f) openCard(f.item.id); }
   else if(opener.t==="col"){ openSheet(opener.id); }
   else if(opener.t==="frame"){ openFramePanel(opener.id); }
+  else if(opener.t==="add"){ openForm(null,opener.colId); }
+  else if(opener.t==="claim"){ openClaim(opener.idx); }
+  else if(opener.t==="board"){ openBoard(); }
 }
 function approachZone(z){
-  const ap=z.t==="col"?z.anchor.approach:z.frame.approach;
-  const fc=z.t==="col"?z.anchor.face:z.frame.face;
+  const ap=z.t==="frame"?z.frame.approach:(z.t==="board"?BOARD.approach:z.anchor.approach);
+  const fc=z.t==="frame"?z.frame.face:(z.t==="board"?BOARD.face:z.anchor.face);
   setWalk(ap.x,ap.z,{t:"align",fx:fc.x,fz:fc.z},null);
 }
 
 /* ---------- zones (proximity prompts) ---------- */
 function currentZones(){
   const zs=[];
-  ANCHORS.forEach(a=>{ const col=colByAnchor(a.idx); if(!col) return;
+  ANCHORS.forEach(a=>{ const col=colByAnchor(a.idx);
+    if(!col){
+      if(!a.extra) a.zones.forEach(z=>zs.push({t:"claim",name:"Available shelf",
+        x:z.x,z:z.z,r:z.r,anchor:a}));
+      return;
+    }
     a.zones.forEach(z=>zs.push({t:"col",id:col.id,name:col.name,x:z.x,z:z.z,r:z.r,anchor:a})); });
   FRAMES.forEach(f=>zs.push({t:"frame",id:f.id,name:f.name,x:f.zone.x,z:f.zone.z,r:f.zone.r,frame:f}));
+  zs.push({t:"board",name:"Notice board",x:BOARD.zone.x,z:BOARD.zone.z,r:BOARD.zone.r});
   return zs;
 }
 function activateZone(z){
   if(z.t==="col") openSheet(z.id);
+  else if(z.t==="claim") openClaim(z.anchor.idx);
+  else if(z.t==="board") openBoard();
   else openFramePanel(z.id);
 }
 
@@ -1681,7 +2497,16 @@ function openCard(itemId){
   $("cNext").textContent=f.item.next||"—";
   const n=f.col.items.indexOf(f.item)+1;
   $("cRef").textContent="SHELF "+ROMAN[f.col.anchor]+" \u00b7 No. "+String(n).padStart(2,"0")+" / "+f.col.items.length;
-  $("cPrev").disabled=(n<=1); $("cNext").disabled=(n>=f.col.items.length);
+  $("cNavPrev").disabled=(n<=1); $("cNavNext").disabled=(n>=f.col.items.length);
+  const lk=$("cLink");
+  let safeLink=null;
+  if(f.item.link){
+    const L=f.item.link.trim();
+    if(/^https?:\/\//i.test(L)) safeLink=L;
+    else if(/^[\w][\w.-]*\.[a-z]{2,}([\/?#]|$)/i.test(L)) safeLink="https://"+L;
+  }
+  if(safeLink){ lk.style.display="inline-block"; lk.href=safeLink; }
+  else lk.style.display="none";
   $("cardWrap").style.display="flex";
 }
 function closeCard(){ $("cardWrap").style.display="none"; cardItemId=null; }
@@ -1690,9 +2515,9 @@ $("cardWrap").addEventListener('click',e=>{ if(e.target===$("cardWrap")) closeCa
 $("cEdit").addEventListener('click',()=>{ if(cardItemId){ openForm(cardItemId,null); } });
 function cardSiblings(){ const f=findItem(cardItemId); if(!f) return null;
   return {list:f.col.items, i:f.col.items.indexOf(f.item)}; }
-$("cPrev").addEventListener('click',()=>{ const s2=cardSiblings();
+$("cNavPrev").addEventListener('click',()=>{ const s2=cardSiblings();
   if(s2&&s2.i>0) openCard(s2.list[s2.i-1].id); });
-$("cNext").addEventListener('click',()=>{ const s2=cardSiblings();
+$("cNavNext").addEventListener('click',()=>{ const s2=cardSiblings();
   if(s2&&s2.i<s2.list.length-1) openCard(s2.list[s2.i+1].id); });
 
 /* ---------- UI: collection sheet ---------- */
@@ -1709,14 +2534,13 @@ $("sheetClose").addEventListener('click',closeSheet);
 $("sheetWrap").addEventListener('click',e=>{ if(e.target===$("sheetWrap")) closeSheet(); });
 function renderSheet(){
   const col=colById(sheetColId); if(!col) return;
-  $("shRef").textContent="SHELF "+ROMAN[col.anchor]+(col.theme?(" \u00b7 "+col.theme.toUpperCase()):"")+" \u00b7 "+col.items.length+(col.items.length===1?" ITEM":" ITEMS");
+  $("shRef").textContent="SHELF "+ROMAN[col.anchor]+" \u00b7 "+col.items.length+(col.items.length===1?" ITEM":" ITEMS");
   $("shTitle").textContent=col.name;
   $("shTitle").style.display=sheetEdit?"none":"block";
   const rn=$("shRename");
   rn.style.display=sheetEdit?"block":"none"; rn.value=col.name;
   $("shEditBtn").textContent=sheetEdit?"Done":"Edit";
-  $("shAdd").style.display=sheetEdit?"block":"none";
-  $("shAddHint").style.display=sheetEdit?"block":"none";
+  $("shAdd").style.display="block";
   $("shDelete").style.display=sheetEdit?"inline":"none";
   $("shMove").style.display=sheetEdit?"inline":"none";
   /* chips */
@@ -1764,81 +2588,152 @@ $("shRename").addEventListener('keydown',e=>{ if(e.key==="Enter") $("shEditBtn")
 $("shAdd").addEventListener('click',()=>openForm(null,sheetColId));
 $("shDelete").addEventListener('click',()=>{
   const col=colById(sheetColId);
-  const warning=col.items.length
-    ? "Delete \u201c"+col.name+"\u201d and its "+col.items.length+" item"+(col.items.length===1?"":"s")+"? This cannot be undone."
-    : "Delete the empty bookshelf \u201c"+col.name+"\u201d?";
-  if(!confirm(warning))return;
+  if(col.items.length){ toast("Move or remove its items first."); return; }
+  if(!confirm("Remove the collection \u201c"+col.name+"\u201d? The shelf itself remains."))return;
   DB.collections=DB.collections.filter(c=>c.id!==col.id);
-  saveState(); rebuildAll(); closeSheet(); toast("Bookshelf deleted.");
+  saveState(); rebuildAll(); closeSheet(); toast("The shelf stands empty again.");
 });
-let placementMode="create", placementColId=null, placementSelected=null, placementUndo=null;
-function openPlacement(mode,colId){
-  placementMode=mode; placementColId=colId||null; placementSelected=null;
-  const col=colId?colById(colId):null;
-  $("mvEyebrow").textContent=mode==="create"?"CREATE NEW BOOKSHELF":"MOVE BOOKSHELF";
-  $("mvTitle").textContent=mode==="create"?"Create new bookshelf":col.name;
-  $("mvIntro").textContent=mode==="create"
-    ? "Name the shelf, choose its character, then select exactly where it should appear in the room."
-    : "Choose a new wall position. Occupied places stay visible so you can see what is already there.";
-  $("mvCreateFields").style.display=mode==="create"?"block":"none";
-  if(mode==="create"){ $("mvName").value=""; $("mvTheme").value=""; $("mvStyle").value="book"; }
-  else placementSelected=col.anchor;
-  renderPlacement();
-  $("moveWrap").style.display="flex";
-  if(mode==="create") setTimeout(()=>$('mvName').focus(),50);
-}
-function renderPlacement(){
-  const moving=placementMode==="move"?colById(placementColId):null;
+$("shMove").addEventListener('click',()=>{
+  const col=colById(sheetColId); if(!col) return;
+  $("mvTitle").textContent=col.name;
   const list=$("mvList"); list.innerHTML="";
   ANCHORS.forEach((a,i)=>{
-    const occ=colByAnchor(i), current=!!moving&&moving.anchor===i;
-    const free=!occ||current;
-    const row=document.createElement('div');
-    row.className="mvRow "+(free?"free":"occupied")+(placementSelected===i?" selected":"");
+    const occ=colByAnchor(i);
+    const row=document.createElement('div'); row.className="mvRow";
     const nm=document.createElement('div'); nm.className="mvName";
-    const state=current?"Current position":occ?("Unavailable \u00b7 "+occ.name):"Available";
     nm.innerHTML="<b>"+ROMAN[i]+" \u2014 "+escapeHtml(a.name)+"</b><i>"+
-      (occ?(current?"This bookshelf is here":"Occupied by \u201c"+escapeHtml(occ.name)+"\u201d"):"Open wall position")+"</i>"+
-      "<div class='mvState'>"+escapeHtml(state)+"</div>";
+      (occ?(occ.id===col.id?"current position":"holds \u201c"+escapeHtml(occ.name)+"\u201d"):"free")+"</i>";
     row.appendChild(nm);
-    if(free&&!current){
+    if(!occ){
       const b=document.createElement('button'); b.className="btnGhost"; b.textContent="Place here";
-      b.onclick=()=>{ placementSelected=i; renderPlacement(); };
-      row.onclick=e=>{ if(e.target!==b){ placementSelected=i; renderPlacement(); } };
+      b.onclick=()=>{ col.anchor=i; saveState(); rebuildAll();
+        $("moveWrap").style.display="none"; renderSheet();
+        teleportToAnchor(i); toast("The shelf now stands at "+a.name.toLowerCase()+"."); };
       row.appendChild(b);
     }
     list.appendChild(row);
   });
-  const confirmBtn=$("mvConfirm");
-  confirmBtn.textContent=placementMode==="create"?"Create bookshelf here":"Move bookshelf here";
-  confirmBtn.disabled=placementSelected==null||(placementMode==="move"&&colById(placementColId).anchor===placementSelected);
-}
-function flashShelf(idx){
-  const a=ANCHORS[idx]; a.highlightUntil=performance.now()+2600;
-  ringMesh.position.set(a.approach.x,0.02,a.approach.z); ringMesh.visible=true;
-  setTimeout(()=>{ if(!state.walk) ringMesh.visible=false; },2600);
-}
-function showPlacementConfirmation(col,oldAnchor,wasNew){
-  placementUndo={colId:col.id,oldAnchor,wasNew};
-  $("placementText").textContent="Bookshelf placed on "+ANCHORS[col.anchor].name;
-  $("placementBar").style.display="flex";
-  flashShelf(col.anchor);
-}
-$("mvConfirm").addEventListener('click',()=>{
-  if(placementSelected==null) return;
-  if(placementMode==="create"){
-    const name=$("mvName").value.trim();
-    if(!name){ $("mvName").focus(); toast("Give the bookshelf a name first."); return; }
-    const col={id:uid(),name,theme:$("mvTheme").value.trim(),displayStyle:$("mvStyle").value,anchor:placementSelected,items:[]};
-    DB.collections.push(col); saveState(); rebuildAll(); $("moveWrap").style.display="none"; closeIndex();
-    showPlacementConfirmation(col,null,true);
-  } else {
-    const col=colById(placementColId), old=col.anchor;
-    col.anchor=placementSelected; saveState(); rebuildAll(); $("moveWrap").style.display="none"; renderSheet();
-    showPlacementConfirmation(col,old,false);
-  }
+  $("moveWrap").style.display="flex";
 });
-$("shMove").addEventListener('click',()=>openPlacement("move",sheetColId));
+/* ---------- the visitors' ledger ---------- */
+function fmtAgo(ts){
+  if(!ts) return "";
+  const d=Math.floor((Date.now()-ts)/864e5);
+  if(d<=0) return "this evening";
+  if(d===1) return "yesterday";
+  return d+" days ago";
+}
+function openLedger(){
+  const list=$("lgList"); list.innerHTML="";
+  const nm=(DB.guestName||"The keeper of this room");
+  const log=(DB.visitLog||[]).slice(0,8);
+  log.forEach((v,i)=>{
+    const d=document.createElement('div');
+    d.style.cssText="padding:8px 6px;border-bottom:1px solid rgba(138,106,52,.28)";
+    d.innerHTML="<div style='font-family:\"IM Fell English\",serif;font-size:16px;color:#241a10'>"+
+      escapeHtml(nm)+" \u2014 visit no. "+(DB.visits-i)+"</div>"+
+      "<div style='font-size:12px;letter-spacing:.06em;color:#8a744c;margin-top:2px'>"+
+      fmtAgo(v.ts)+" \u00b7 "+v.items+" artifacts on the shelves</div>";
+    list.appendChild(d);
+  });
+  const sims=document.createElement('div');
+  sims.style.cssText="padding:8px 6px;font-size:13px;font-style:italic;color:#6d5230";
+  sims.textContent="Elin, Kalle and Herr Lindqvist sign in every evening. (House guests, simulated.)";
+  list.appendChild(sims);
+  $("ledgerWrap").style.display="flex";
+}
+$("ledgerClose").addEventListener('click',()=>$("ledgerWrap").style.display="none");
+$("ledgerWrap").addEventListener('click',e=>{ if(e.target===$("ledgerWrap")) $("ledgerWrap").style.display="none"; });
+
+/* ---------- the music box (local WebAudio, no assets) ---------- */
+let AC=null, musicOn=false, musicTimer=null;
+function musicPluck(freq,when,vol){
+  const o=AC.createOscillator(), gn=AC.createGain();
+  o.type="triangle"; o.frequency.value=freq;
+  gn.gain.setValueAtTime(0.0001,when);
+  gn.gain.exponentialRampToValueAtTime(vol,when+0.025);
+  gn.gain.exponentialRampToValueAtTime(0.0001,when+2.3);
+  o.connect(gn); gn.connect(AC.destination);
+  o.start(when); o.stop(when+2.5);
+}
+function musicNote(){
+  if(!AC||!musicOn) return;
+  const t0=AC.currentTime;
+  const sc=[146.83,174.61,220,261.63,293.66,349.23,440,523.25];
+  const f=sc[Math.floor(Math.random()*sc.length)];
+  musicPluck(f,t0,0.05);
+  if(Math.random()<0.4) musicPluck(f*1.5,t0+0.14,0.028);
+  if(Math.random()<0.3) musicPluck(f/2,t0+0.06,0.038);
+  musicTimer=setTimeout(musicNote,750+Math.random()*1200);
+}
+function setMusic(on){
+  musicOn=on;
+  if(on){
+    if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ musicOn=false; return; } }
+    if(AC.state==="suspended") AC.resume();
+    clearTimeout(musicTimer); musicNote();
+  } else clearTimeout(musicTimer);
+  DB.music=on;
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+}
+function bdRender(){
+  const list=$("bdList"); list.innerHTML="";
+  (DB.notes||[]).forEach(n=>{
+    const d=document.createElement('div');
+    d.style.cssText="padding:9px 6px;border-bottom:1px solid rgba(138,106,52,.28)";
+    d.innerHTML="<div style='font-family:\"IM Fell English\",serif;font-size:16.5px;color:#241a10'>"+
+      escapeHtml(n.txt)+"</div>"+
+      "<div style='font-size:12px;letter-spacing:.08em;color:#8a744c;margin-top:2px'>\u2014 "+
+      escapeHtml(n.n)+"</div>";
+    list.appendChild(d);
+  });
+  if(!(DB.notes||[]).length){
+    const d=document.createElement('div');
+    d.style.cssText="font-style:italic;color:#6d5230;padding:10px 4px";
+    d.textContent="The board is bare. Pin the first note.";
+    list.appendChild(d);
+  }
+}
+function openBoard(){
+  bdRender(); $("bdText").value="";
+  $("boardWrap").style.display="flex";
+}
+$("boardClose").addEventListener('click',()=>$("boardWrap").style.display="none");
+$("boardWrap").addEventListener('click',e=>{ if(e.target===$("boardWrap")) $("boardWrap").style.display="none"; });
+$("bdText").addEventListener('keydown',e=>{ if(e.key==="Enter") $("bdPin").click(); });
+$("bdPin").addEventListener('click',()=>{
+  const txt=$("bdText").value.trim();
+  if(!txt){ $("bdText").focus(); return; }
+  DB.notes=DB.notes||[];
+  DB.notes.unshift({n:(DB.guestName||"Anonymous"),txt,ts:Date.now()});
+  DB.notes=DB.notes.slice(0,12);
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+  bdRender(); $("bdText").value="";
+  toast("Pinned to the board.");
+});
+let claimIdx=null;
+function openClaim(idx){
+  claimIdx=idx;
+  $("clWhere").textContent=ANCHORS[idx].name;
+  $("clName").value="";
+  $("claimWrap").style.display="flex";
+  setTimeout(()=>$("clName").focus(),60);
+}
+$("clCancel").addEventListener('click',()=>$("claimWrap").style.display="none");
+$("claimClose").addEventListener('click',()=>$("claimWrap").style.display="none");
+$("claimWrap").addEventListener('click',e=>{ if(e.target===$("claimWrap")) $("claimWrap").style.display="none"; });
+$("clName").addEventListener('keydown',e=>{ if(e.key==="Enter") $("clCreate").click(); });
+$("clCreate").addEventListener('click',()=>{
+  const name=$("clName").value.trim();
+  if(!name){ toast("Give the collection a name first."); $("clName").focus(); return; }
+  if(claimIdx==null || colByAnchor(claimIdx)){ $("claimWrap").style.display="none"; return; }
+  const col={id:uid(),name,anchor:claimIdx,items:[]};
+  DB.collections.push(col);
+  saveState(); rebuildAll();
+  $("claimWrap").style.display="none";
+  openSheet(col.id);
+  toast("The shelf now belongs to \u201c"+name+"\u201d.");
+});
 $("moveClose").addEventListener('click',()=>$("moveWrap").style.display="none");
 $("moveWrap").addEventListener('click',e=>{ if(e.target===$("moveWrap")) $("moveWrap").style.display="none"; });
 
@@ -1856,18 +2751,16 @@ function openForm(itemId,colId){
     $("fTitle").value=f.item.title; $("fKind").value=f.item.kind||"";
     $("fStatus").value=f.item.status||""; $("fColor").value=f.item.sColor||"#1e5c34";
     $("fDesc").value=f.item.desc||""; $("fNext").value=f.item.next||"";
+    $("fLink").value=f.item.link||"";
     sel.value=f.col.id;
     $("fDelete").style.display="inline";
-    $("fGuide").style.display="none";
-    $("fSave").textContent="Save changes";
   } else {
-    $("fEyebrow").textContent="ADD ARTIFACT OR BOX";
+    $("fEyebrow").textContent="NEW ENTRY";
     $("fTitle").value=""; $("fKind").value=""; $("fStatus").value="ACTIVE";
     $("fColor").value="#1e5c34"; $("fDesc").value=""; $("fNext").value="";
+    $("fLink").value="";
     if(colId) sel.value=colId;
     $("fDelete").style.display="none";
-    $("fGuide").style.display="block";
-    $("fSave").textContent="Add to bookshelf";
   }
   $("formWrap").style.display="flex";
   setTimeout(()=>$("fTitle").focus(),50);
@@ -1881,7 +2774,8 @@ $("fSave").addEventListener('click',()=>{
   if(!title){ toast("Give it a title first."); $("fTitle").focus(); return; }
   const destCol=colById($("fColl").value);
   const vals={ title, kind:$("fKind").value.trim(), status:$("fStatus").value.trim().toUpperCase(),
-    sColor:$("fColor").value, desc:$("fDesc").value.trim(), next:$("fNext").value.trim() };
+    sColor:$("fColor").value, desc:$("fDesc").value.trim(), next:$("fNext").value.trim(),
+    link:$("fLink").value.trim() };
   if(formItemId){
     const f=findItem(formItemId);
     Object.assign(f.item,vals);
@@ -1893,7 +2787,6 @@ $("fSave").addEventListener('click',()=>{
   } else {
     destCol.items.push(Object.assign({id:uid(),
       color:BOOK_HUES[Math.floor(Math.random()*BOOK_HUES.length)]},vals));
-    toast("Added to “"+destCol.name+"”.");
   }
   saveState(); rebuildAll(); closeForm();
   if($("sheetWrap").style.display==="flex"){ sheetColId=destCol.id; renderSheet(); }
@@ -1902,7 +2795,6 @@ $("fSave").addEventListener('click',()=>{
 $("fDelete").addEventListener('click',()=>{
   if(!formItemId) return;
   const f=findItem(formItemId);
-  if(!confirm("Remove “"+f.item.title+"” from the library?")) return;
   f.col.items=f.col.items.filter(i=>i.id!==f.item.id);
   saveState(); rebuildAll(); closeForm(); closeCard();
   if($("sheetWrap").style.display==="flex") renderSheet();
@@ -1912,7 +2804,7 @@ $("fDelete").addEventListener('click',()=>{
 /* ---------- UI: library index ---------- */
 function openIndex(){
   const list=$("ixList"); list.innerHTML="";
-  DB.collections.forEach((c,ci)=>{
+  DB.collections.forEach(c=>{
     const row=document.createElement('div'); row.className="ixRow";
     const nm=document.createElement('div'); nm.className="ixName";
     nm.innerHTML=escapeHtml(c.name)+
@@ -1924,18 +2816,22 @@ function openIndex(){
     go.onclick=()=>{ teleportToAnchor(c.anchor); closeIndex(); };
     const op=document.createElement('button'); op.className="btnGhost"; op.textContent="Open";
     op.onclick=()=>{ closeIndex(); openSheet(c.id); };
-    const up=document.createElement('button'); up.className="rowBtn"; up.innerHTML="&#8593;"; up.title="Move earlier"; up.disabled=ci===0;
-    up.onclick=()=>{ [DB.collections[ci-1],DB.collections[ci]]=[DB.collections[ci],DB.collections[ci-1]]; saveState(); openIndex(); };
-    const down=document.createElement('button'); down.className="rowBtn"; down.innerHTML="&#8595;"; down.title="Move later"; down.disabled=ci===DB.collections.length-1;
-    down.onclick=()=>{ [DB.collections[ci+1],DB.collections[ci]]=[DB.collections[ci],DB.collections[ci+1]]; saveState(); openIndex(); };
-    row.appendChild(nm); row.appendChild(ct); row.appendChild(up); row.appendChild(down); row.appendChild(go); row.appendChild(op);
+    row.appendChild(nm); row.appendChild(ct); row.appendChild(go); row.appendChild(op);
     list.appendChild(row);
   });
   const free=ANCHORS.filter((a,i)=>!colByAnchor(i)).length;
   const info=document.createElement('div');
-  info.style.cssText="margin-top:8px;font-size:12.5px;letter-spacing:.08em;color:#6d5230;text-transform:uppercase";
-  info.textContent=free+" shelf position"+(free===1?"":"s")+" free";
+  info.style.cssText="margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;letter-spacing:.08em;color:#6d5230;text-transform:uppercase";
+  const infoTxt=document.createElement('span');
+  infoTxt.textContent=free+" shelf position"+(free===1?"":"s")+" free";
+  const visBtn=document.createElement('button'); visBtn.className="inkLink";
+  visBtn.textContent="Visitors: "+(DB.visitors!==false?"on":"off");
+  visBtn.onclick=()=>{ DB.visitors=!(DB.visitors!==false);
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+    visBtn.textContent="Visitors: "+(DB.visitors!==false?"on":"off"); };
+  info.appendChild(infoTxt); info.appendChild(visBtn);
   list.appendChild(info);
+  $("ixNewName").value="";
   $("indexWrap").style.display="flex";
 }
 function closeIndex(){ $("indexWrap").style.display="none"; }
@@ -1943,26 +2839,19 @@ $("indexBtn").addEventListener('click',()=>{ if($("indexWrap").style.display==="
 $("indexClose").addEventListener('click',closeIndex);
 $("indexWrap").addEventListener('click',e=>{ if(e.target===$("indexWrap")) closeIndex(); });
 $("ixCreate").addEventListener('click',()=>{
-  if(ANCHORS.every((a,i)=>!!colByAnchor(i))){ toast("The room holds eight collections — move or delete one first."); return; }
-  openPlacement("create",null);
+  const name=$("ixNewName").value.trim();
+  if(!name){ $("ixNewName").focus(); return; }
+  const used=new Set(DB.collections.map(c=>c.anchor));
+  let free=ANCHORS.findIndex((a,i)=>a.extra && !used.has(i));
+  if(free<0) free=ANCHORS.findIndex((a,i)=>!used.has(i));
+  if(free<0){ toast("The room holds ten collections — rename or clear one first."); return; }
+  const col={id:uid(),name,anchor:free,items:[]};
+  DB.collections.push(col);
+  saveState(); rebuildAll(); closeIndex();
+  teleportToAnchor(free);
+  toast("A new shelf has appeared for “"+name+"”.");
 });
-$("placeGo").addEventListener('click',()=>{
-  const col=placementUndo&&colById(placementUndo.colId); if(!col) return;
-  teleportToAnchor(col.anchor); $("placementBar").style.display="none";
-});
-$("placeOpen").addEventListener('click',()=>{
-  const col=placementUndo&&colById(placementUndo.colId); if(!col) return;
-  $("placementBar").style.display="none"; openSheet(col.id);
-});
-$("placeUndo").addEventListener('click',()=>{
-  if(!placementUndo) return;
-  const u=placementUndo, col=colById(u.colId);
-  if(u.wasNew) DB.collections=DB.collections.filter(c=>c.id!==u.colId);
-  else if(col) col.anchor=u.oldAnchor;
-  saveState(); rebuildAll(); $("placementBar").style.display="none"; placementUndo=null;
-  if($("sheetWrap").style.display==="flex"){ if(colById(sheetColId)) renderSheet(); else closeSheet(); }
-  toast("Placement undone.");
-});
+$("ixNewName").addEventListener('keydown',e=>{ if(e.key==="Enter") $("ixCreate").click(); });
 function teleportToAnchor(idx){
   const a=ANCHORS[idx];
   avatar.position.set(a.approach.x,0,a.approach.z);
@@ -2036,6 +2925,9 @@ $("fpRemove").addEventListener('click',()=>{
 function closeTop(){
   if($("formWrap").style.display==="flex") return closeForm();
   if($("frameWrap").style.display==="flex") return closeFramePanel();
+  if($("ledgerWrap").style.display==="flex"){ $("ledgerWrap").style.display="none"; return; }
+  if($("boardWrap").style.display==="flex"){ $("boardWrap").style.display="none"; return; }
+  if($("claimWrap").style.display==="flex"){ $("claimWrap").style.display="none"; return; }
   if($("moveWrap").style.display==="flex"){ $("moveWrap").style.display="none"; return; }
   if($("cardWrap").style.display==="flex") return closeCard();
   if($("sheetWrap").style.display==="flex") return closeSheet();
@@ -2048,6 +2940,10 @@ $("wbOpen").addEventListener('click',()=>{
   if(state.walk&&state.walk.open){ const w=state.walk; cancelWalk();
     execOpen(w.open,new THREE.Vector3(w.x,1,w.z)); } });
 $("wbCancel").addEventListener('click',()=>cancelWalk());
+$("constBtn").addEventListener('click',()=>{
+  if(!state.started) return;
+  setConstellation(!(CONST.on&&!CONST.closing));
+});
 examineBtn.addEventListener('click',()=>{ if(state.nearestZone && !anyOverlayOpen()) activateZone(state.nearestZone); });
 $("resetBtn").addEventListener('click',()=>{
   avatar.position.set(-1.4,0,5.2); avatar.rotation.y=Math.PI;
@@ -2055,6 +2951,35 @@ $("resetBtn").addEventListener('click',()=>{
   toast("Back at the door."); });
 $("helpBtn").addEventListener('click',()=>{ welcome.style.display="flex"; welcome.style.opacity=1; });
 $("enterBtn").addEventListener('click',()=>{
+  DB.guestName=($("guestName").value||"").trim();
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+  setPlayerTag();
+  state.camDist=7.6;
+  if(DB.music) setMusic(true);
+  const gapD=DB.lastVisit?Math.floor((Date.now()-DB.lastVisit)/864e5):0;
+  DB.visits=(DB.visits||0)+1; DB.lastVisit=Date.now();
+  DB.visitLog=DB.visitLog||[];
+  DB.visitLog.unshift({ts:Date.now(),
+    items:DB.collections.reduce((n2,c2)=>n2+c2.items.length,0)});
+  DB.visitLog=DB.visitLog.slice(0,10);
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+  setTimeout(()=>{
+    if(DB.visitors===false || !guests.length) return;
+    let ng=guests[0], bd2=1e9;
+    guests.forEach(gu=>{ const dd=Math.hypot(gu.g.position.x-avatar.position.x,
+      gu.g.position.z-avatar.position.z); if(dd<bd2){ bd2=dd; ng=gu; } });
+    const nm2=DB.guestName;
+    let line;
+    if(DB.visits<=1) line="Welcome to the Artifact Room.";
+    else if(DB.visits===5||DB.visits===10||DB.visits===25)
+      line="Your "+ordinal(DB.visits)+" visit"+(nm2?", "+nm2:"")+". The room keeps count.";
+    else if(gapD>=3)
+      line="It has been "+gapD+" days"+(nm2?", "+nm2:"")+". The cat missed you.";
+    else line=nm2?("Welcome back, "+nm2+"."):"Welcome back.";
+    speakText(ng,line);
+  },5200);
+  setTimeout(()=>$("roomTitle").classList.add("show"),400);
+  setTimeout(()=>$("roomTitle").classList.remove("show"),3600);
   welcome.style.opacity=0; state.started=true;
   setTimeout(()=>welcome.style.display="none",800); });
 $("restoreLink").addEventListener('click',()=>{
@@ -2063,7 +2988,41 @@ $("restoreLink").addEventListener('click',()=>{
   toast("The library has been restored."); });
 
 /* ---------- boot ---------- */
+const PLAYER_COLORS=["#6b5a42","#5c2016","#2e4a3a","#2c3a54","#4a2a4a","#8a5a17"];
+function setPlayerColor(hex){
+  A.tweed.color.set(hex);
+  document.querySelectorAll("#colorRow button").forEach(b=>{
+    b.style.outline=(b.dataset.c===hex)?"2px solid #d8b56e":"none";
+    b.style.outlineOffset="2px";
+  });
+}
+(()=>{ const row=$("colorRow");
+  PLAYER_COLORS.forEach(c=>{
+    const b=document.createElement('button');
+    b.dataset.c=c;
+    b.style.cssText="width:34px;height:34px;border-radius:50%;border:1px solid #6d5230;cursor:pointer;background:"+c;
+    b.setAttribute('aria-label','Coat colour '+c);
+    b.onclick=()=>{ DB.playerColor=c;
+      try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+      setPlayerColor(c); };
+    row.appendChild(b);
+  }); })();
 rebuildAll();
+$("guestName").value=(DB.guestName||"");
+setPlayerColor(DB.playerColor||"#6b5a42");
+setPlayerTag();
+function ordinal(n2){
+  const v=n2%100;
+  if(v>=11&&v<=13) return n2+"th";
+  return n2+({1:"st",2:"nd",3:"rd"}[n2%10]||"th");
+}
+if(DB.visits>0){
+  const nIt=DB.collections.reduce((n2,c2)=>n2+c2.items.length,0);
+  $("enterBtn").insertAdjacentHTML('beforebegin',
+    "<div style='font-size:13px;color:#8a744c;letter-spacing:.08em;margin-bottom:10px;font-style:italic'>"+
+    "Your "+ordinal(DB.visits+1)+" visit \u00b7 "+
+    nIt+" artifact"+(nIt===1?"":"s")+" on the shelves</div>");
+}
 
 /* ---------- main loop ---------- */
 const clock=new THREE.Clock(), camTarget=new THREE.Vector3();
@@ -2142,7 +3101,8 @@ function animate(){
   }
 
   /* camera */
-  const dist=5.0, camH=1.9-state.pitch*2.2;
+  state.camDist+=(5.0-state.camDist)*Math.min(1,dt*1.1);
+  const dist=state.camDist, camH=1.9-state.pitch*2.2;
   let cx=avatar.position.x+Math.sin(state.yaw)*dist*Math.cos(state.pitch);
   let cz=avatar.position.z+Math.cos(state.yaw)*dist*Math.cos(state.pitch);
   let cy=avatar.position.y+camH-Math.sin(state.pitch)*dist*0.4;
@@ -2169,7 +3129,7 @@ function animate(){
     else { activePlaque=bz.frame.plane; }
     promptEl.innerHTML= IS_TOUCH
       ? "<b>"+escapeHtml(bz.name)+"</b>"
-      : "<b>"+escapeHtml(bz.name)+"</b> &nbsp;<span class='k'>E</span> step up · <span class='k'>R</span> "+(bz.t==="col"?"open":"view");
+      : "<b>"+escapeHtml(bz.name)+"</b> &nbsp;<span class='k'>E</span> step up · <span class='k'>R</span> "+(bz.t==="col"?"open":(bz.t==="claim"?"claim":(bz.t==="board"?"read":"view")));
     promptEl.style.display="block";
     if(IS_TOUCH){ examineBtn.textContent=bz.t==="col"?"Open":"View"; examineBtn.style.display="block"; }
   } else {
@@ -2178,11 +3138,6 @@ function animate(){
   if(prevPlaque && prevPlaque!==activePlaque && prevPlaque.material.emissiveIntensity!==undefined)
     prevPlaque.material.emissiveIntensity=0;
   if(activePlaque) activePlaque.material.emissiveIntensity=0.22+Math.sin(t*4)*0.1;
-  ANCHORS.forEach(a=>{
-    if(!a.plaqueMesh) return;
-    if(a.highlightUntil>performance.now()) a.plaqueMesh.material.emissiveIntensity=0.55+Math.sin(t*7)*0.2;
-    else if(a.plaqueMesh!==activePlaque) a.plaqueMesh.material.emissiveIntensity=0;
-  });
 
   /* item glow: hover (desktop) + close proximity */
   for(const it of itemInteract){
@@ -2205,6 +3160,43 @@ function animate(){
   /* fire flicker */
   const f=0.85+Math.sin(t*11)*0.12+Math.sin(t*23+1.7)*0.1+Math.random()*0.08;
   fireLight.intensity=1.5*f;
+  updateGuests(dt);
+  plinthSpins.forEach(m=>m.rotation.y+=dt*0.35);
+  const gb=0.24+Math.sin(t*2.1)*0.09;
+  addGhostMats.forEach(m=>m.opacity=gb);
+  if(catBody) catBody.scale.y=0.55+Math.sin(t*1.7)*0.028;
+  plinthHalos.forEach((h,i)=>h.material.opacity=0.09+Math.sin(t*1.5+i)*0.04);
+  embers.forEach(e=>{
+    e.t+=dt; const cy=2.6, p=(e.t%cy)/cy;
+    if(e.t>=cy){ e.t-=cy; e.ox=(Math.random()-0.5)*0.7; e.oz=(Math.random()-0.5)*0.2; }
+    e.m.position.set(e.ox+Math.sin(t*2+e.ox*9)*0.06, 0.6+p*1.7, -8.55+e.oz);
+    e.m.material.opacity=Math.sin(p*Math.PI)*0.5;
+    e.m.quaternion.copy(camera.quaternion);
+  });
+  renderer.toneMappingExposure+=((CONST.on&&!CONST.closing?0.52:1.18)-renderer.toneMappingExposure)*Math.min(1,dt*2.2);
+  updateConstellation(dt,t);
+  if(CLOCK.pend) CLOCK.pend.rotation.z=Math.sin(t*2.6)*0.2;
+  if(OWL.g){
+    const odx=avatar.position.x-OWL.g.position.x, odz=avatar.position.z-OWL.g.position.z;
+    let want=0;
+    if(Math.hypot(odx,odz)<6){
+      want=Math.atan2(odx,odz)-OWL.g.rotation.y;
+      while(want>Math.PI)want-=Math.PI*2; while(want<-Math.PI)want+=Math.PI*2;
+      want=Math.max(-0.95,Math.min(0.95,want));
+    }
+    OWL.head.rotation.y+=(want-OWL.head.rotation.y)*Math.min(1,dt*3);
+    OWL.next-=dt;
+    if(OWL.next<=0){ OWL.blink=0.13; OWL.next=3.5+Math.random()*6; }
+    if(OWL.blink>0){ OWL.blink-=dt;
+      OWL.eyes.forEach(e2=>e2.scale.y=OWL.blink>0?0.12:1); }
+    else OWL.eyes.forEach(e2=>e2.scale.y=1);
+  }
+  if(TEA.steam) TEA.steam.forEach(st2=>{
+    st2.t+=dt; const cy2=2.2, p2=(st2.t%cy2)/cy2;
+    st2.m.position.set(0.07+Math.sin(t*1.6+st2.t)*0.03, 0.78+p2*0.55, -5.15);
+    st2.m.material.opacity=Math.sin(p2*Math.PI)*0.22;
+    st2.m.quaternion.copy(camera.quaternion);
+  });
   flames.forEach((fl,i)=>{
     fl.scale.set(0.85+Math.sin(t*9+i*2.1)*0.18,0.9+Math.sin(t*13+i*1.3)*0.22,1);
     fl.lookAt(camera.position.x,fl.position.y,camera.position.z);
